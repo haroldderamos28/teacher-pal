@@ -50,7 +50,7 @@
   const styleEl = $('style');
   const toggleBtn = $('toggle'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '';
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', holdTimer = null;
 
   try { styleEl.value = localStorage.getItem('tp_style') || 'business'; } catch (e) {}
   styleEl.addEventListener('change', () => { try { localStorage.setItem('tp_style', styleEl.value); } catch (e) {} });
@@ -79,6 +79,7 @@
   }
 
   function flush() {
+    clearTimeout(holdTimer);
     const text = buffer.trim();
     buffer = '';
     interimEl.textContent = '';
@@ -117,7 +118,7 @@
       return;
     }
 
-    const url = 'wss://api.deepgram.com/v1/listen?model=nova-3&language=en&smart_format=true&interim_results=true&endpointing=700';
+    const url = 'wss://api.deepgram.com/v1/listen?model=nova-3&language=en&smart_format=true&interim_results=true&endpointing=1200';
     socket = new WebSocket(url, ['bearer', token]);
 
     socket.onopen = () => {
@@ -134,10 +135,16 @@
       const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
       const text = alt && alt.transcript;
       if (text) {
+        clearTimeout(holdTimer);
         if (data.is_final) { buffer += text + ' '; interimEl.textContent = buffer; }
         else { interimEl.textContent = buffer + text; }
       }
-      if (data.speech_final) flush();
+      if (data.speech_final) {
+        // Only send finished sentences. If it doesn't end with . ? or !, wait for more speech
+        // (or send it anyway after 3 seconds of silence).
+        if (/[.?!]["')\]]*\s*$/.test(buffer.trim())) flush();
+        else { clearTimeout(holdTimer); holdTimer = setTimeout(flush, 3000); }
+      }
     };
 
     socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
