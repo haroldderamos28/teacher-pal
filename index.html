@@ -51,7 +51,7 @@
   const styleEl = $('style');
   const toggleBtn = $('toggle'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', holdTimer = null;
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', holdTimer = null, watchdog = null, lastActivity = 0;
 
   try { styleEl.value = localStorage.getItem('tp_style') || 'business'; } catch (e) {}
   styleEl.addEventListener('change', () => { try { localStorage.setItem('tp_style', styleEl.value); } catch (e) {} });
@@ -117,68 +117,4 @@
       }
     } catch (e) { statusEl.textContent = 'Could not start audio: ' + e.message; return; }
 
-    // Ask the Worker for a short-lived Deepgram token (valid ~30 seconds, so fetch it right before connecting)
-    statusEl.textContent = 'Connecting…';
-    let token;
-    try {
-      const r = await fetch(WORKER + '/token', { method: 'POST' });
-      const d = await r.json();
-      if (!d.token) throw new Error(d.error || 'No token');
-      token = d.token;
-    } catch (e) {
-      statusEl.textContent = 'Could not get access: ' + e.message;
-      stop();
-      return;
-    }
-
-    const url = 'wss://api.deepgram.com/v1/listen?model=nova-3&language=en&smart_format=true&interim_results=true&endpointing=1200';
-    socket = new WebSocket(url, ['bearer', token]);
-
-    socket.onopen = () => {
-      statusEl.textContent = 'Listening… speak now.';
-      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(e.data);
-      };
-      recorder.start(250);
-    };
-
-    socket.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-      const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
-      const text = alt && alt.transcript;
-      if (text) {
-        clearTimeout(holdTimer);
-        if (data.is_final) { buffer += text + ' '; interimEl.textContent = buffer; }
-        else { interimEl.textContent = buffer + text; }
-      }
-      if (data.speech_final) {
-        // Only send finished sentences. If it doesn't end with . ? or !, wait for more speech
-        // (or show it as unfinished after 6 seconds of silence).
-        if (/[.?!]["')\]]*\s*$/.test(buffer.trim())) flush();
-        else { clearTimeout(holdTimer); holdTimer = setTimeout(flush, 6000); }
-      }
-    };
-
-    socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
-    socket.onclose = () => { if (running) stop(); };
-
-    running = true;
-    toggleBtn.textContent = 'Stop';
-  }
-
-  function stop() {
-    running = false;
-    flush();
-    if (recorder && recorder.state !== 'inactive') recorder.stop();
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (displayStream) displayStream.getTracks().forEach(t => t.stop());
-    if (socket && socket.readyState === WebSocket.OPEN) socket.close();
-    toggleBtn.textContent = 'Start Listening';
-    if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
-  }
-
-  toggleBtn.addEventListener('click', () => (running ? stop() : start()));
-</script>
-</body>
-</html>
+    // Ask the Worker for a short-lived Deepgram
