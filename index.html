@@ -5,99 +5,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teacher Pal – Live Coaching</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
   h1 { font-size: 1.4rem; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1rem; }
   label { display: block; font-size: .9rem; color: #555; margin-top: .8rem; }
   select { width: 100%; padding: .55rem; margin-top: .25rem; box-sizing: border-box; }
+  .check { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .95rem; color: #333; }
   button { padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
   #status { margin: .8rem 0; color: #666; }
-  .cols, .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .cols, .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
   .cols { font-weight: 600; border-bottom: 2px solid #ddd; padding-bottom: .4rem; }
   .row { padding: .7rem 0; border-bottom: 1px solid #eee; line-height: 1.5; }
-  .polished { color: #0a6b3a; font-weight: 500; }
+  .fb div { margin-bottom: .25rem; }
+  .fix { color: #b00020; font-weight: 500; }
+  .nat { color: #0a6b3a; font-weight: 500; }
+  .tip { color: #555; }
+  .ask { color: #1a4fa0; }
+  .ok { color: #888; }
   .interim { color: #999; padding: .7rem 0; min-height: 1.4rem; }
   .err { color: #b00020; }
   .muted { color: #888; font-style: italic; font-weight: 400; }
   .ver { color: #aaa; font-size: .75rem; margin-top: 2rem; }
-  @media (max-width: 600px) { .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
+  @media (max-width: 600px) { .controls, .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
 </style>
 </head>
 <body>
   <h1>Live Coaching</h1>
 
-  <label for="style">Polish style</label>
-  <select id="style">
-    <option value="business">Business English</option>
-    <option value="casual">Casual conversation</option>
-    <option value="neutral">Neutral / natural</option>
-  </select>
-
-  <label for="source">Audio source</label>
-  <select id="source">
-    <option value="tab">Tab / system audio (the other person's voice)</option>
-    <option value="mic">My microphone (my voice)</option>
-  </select>
+  <div class="controls">
+    <div>
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="natural">Natural</option>
+        <option value="accurate">Accurate (corrections only)</option>
+        <option value="casual">Casual</option>
+        <option value="business">Business</option>
+        <option value="professional">Professional (formal)</option>
+        <option value="concise">Concise</option>
+        <option value="student">Student level (simple words)</option>
+      </select>
+    </div>
+    <div>
+      <label for="level">Difficulty</label>
+      <select id="level">
+        <option value="basic">Basic</option>
+        <option value="intermediate" selected>Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+    <div>
+      <label for="source">Audio source</label>
+      <select id="source">
+        <option value="tab">Tab / system audio (the other person's voice)</option>
+        <option value="mic">My microphone (my voice)</option>
+      </select>
+    </div>
+    <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
+  </div>
 
   <button id="toggle">Start Listening</button>
   <div id="status">Not connected.</div>
 
-  <div class="cols"><div>Student said</div><div>Polished</div></div>
+  <div class="cols"><div>Student said</div><div>Feedback</div></div>
   <div id="rows"></div>
   <div id="interim" class="interim"></div>
-  <div class="ver">version 5</div>
+  <div class="ver">version 6</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
 
   const $ = (id) => document.getElementById(id);
-  const styleEl = $('style');
+  const modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
   const toggleBtn = $('toggle'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', holdTimer = null, watchdog = null, lastActivity = 0;
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', watchdog = null, lastActivity = 0;
 
-  try { styleEl.value = localStorage.getItem('tp_style') || 'business'; } catch (e) {}
-  styleEl.addEventListener('change', () => { try { localStorage.setItem('tp_style', styleEl.value); } catch (e) {} });
+  // Remember the teacher's settings
+  try {
+    modeEl.value = localStorage.getItem('tp_mode') || 'natural';
+    levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
+    extrasEl.checked = localStorage.getItem('tp_extras') === '1';
+  } catch (e) {}
+  modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
+  levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
+  extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
 
-  async function polish(text) {
+  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+
+  function line(parent, cls, text) {
+    if (!text) return;
+    const d = document.createElement('div');
+    d.className = cls;
+    d.textContent = text;
+    parent.append(d);
+  }
+
+  function makeRow(text) {
     const row = document.createElement('div');
     row.className = 'row';
     const left = document.createElement('div'); left.textContent = text;
-    const right = document.createElement('div'); right.className = 'polished'; right.textContent = '…';
+    const right = document.createElement('div'); right.className = 'fb';
     row.append(left, right);
     rowsEl.prepend(row);
+    return right;
+  }
 
+  async function analyse(text) {
+    const box = makeRow(text);
+    box.textContent = '…';
     try {
       const res = await fetch(WORKER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, style: styleEl.value }),
+        body: JSON.stringify({ text, mode: modeEl.value, level: levelEl.value, extras: extrasEl.checked }),
       });
-      const data = await res.json();
-      if (data.polished) right.textContent = data.polished;
-      else { right.textContent = 'Error: ' + (data.error || 'unknown'); right.classList.add('err'); }
+      const d = await res.json();
+      box.textContent = '';
+      if (!d.correction) { line(box, 'err', 'Error: ' + (d.error || 'unknown')); return; }
+
+      if (norm(d.correction) === norm(text)) line(box, 'ok', '✓ No correction needed');
+      else line(box, 'fix', '🔴 ' + d.correction);
+      if (d.natural && norm(d.natural) !== norm(d.correction)) line(box, 'nat', '🟢 ' + d.natural);
+      line(box, 'tip', d.explanation ? '💡 ' + d.explanation : '');
+      line(box, 'ask', d.followup ? '💬 ' + d.followup : '');
+      if (d.alternatives && d.alternatives.length) line(box, 'tip', '🔁 ' + d.alternatives.join('  •  '));
+      line(box, 'tip', d.vocabulary ? '📚 ' + d.vocabulary : '');
     } catch (e) {
-      right.textContent = 'Could not reach the server.';
-      right.classList.add('err');
+      box.textContent = '';
+      line(box, 'err', 'Could not reach the server.');
     }
   }
 
   function addUnfinished(text) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const left = document.createElement('div'); left.textContent = text;
-    const right = document.createElement('div'); right.className = 'muted'; right.textContent = '(unfinished, not polished)';
-    row.append(left, right);
-    rowsEl.prepend(row);
+    const box = makeRow(text);
+    line(box, 'muted', '(unfinished, not analysed)');
   }
 
   function flush() {
-    clearTimeout(holdTimer);
     const text = buffer.trim();
     buffer = '';
     interimEl.textContent = '';
     if (!text) return;
     // Only finished sentences go to the AI. Trailing-off fragments are shown as-is so nothing gets invented.
-    if (/[.?!]["')\]]*$/.test(text)) polish(text);
+    if (/[.?!]["')\]]*$/.test(text)) analyse(text);
     else addUnfinished(text);
   }
 
@@ -151,15 +201,12 @@
       const text = alt && alt.transcript;
       if (text) {
         lastActivity = Date.now();
-        clearTimeout(holdTimer);
         if (data.is_final) { buffer += text + ' '; interimEl.textContent = buffer; }
         else { interimEl.textContent = buffer + text; }
       }
-      if (data.speech_final) {
-        // Finished sentence (ends with . ? or !) goes out right away.
-        // Anything else waits; the watchdog below shows it as unfinished after 6 quiet seconds.
-        if (/[.?!]["')\]]*\s*$/.test(buffer.trim())) flush();
-      }
+      // A finished sentence (ends with . ? or !) goes out right away.
+      // Anything else waits; the watchdog below shows it as unfinished after 6 quiet seconds.
+      if (data.speech_final && /[.?!]["')\]]*\s*$/.test(buffer.trim())) flush();
     };
 
     socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
