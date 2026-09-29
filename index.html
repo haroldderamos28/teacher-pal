@@ -61,15 +61,16 @@
       </select>
     </div>
     <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
+  <label class="check"><input type="checkbox" id="hideShort"> Hide short replies (ok, yes, right, etc.) instead of showing a checkmark</label>
   </div>
 
   <button id="toggle">Start Listening</button>
   <div id="status">Not connected.</div>
+  <div id="interim" class="interim"></div>
 
   <div class="cols"><div>Student said</div><div>Feedback</div></div>
   <div id="rows"></div>
-  <div id="interim" class="interim"></div>
-  <div class="ver">version 7</div>
+  <div class="ver">version 8</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -89,6 +90,9 @@
   modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
   levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
   extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
+  const hideShortEl = $('hideShort');
+  try { hideShortEl.checked = localStorage.getItem('tp_hideShort') === '1'; } catch (e) {}
+  hideShortEl.addEventListener('change', () => { try { localStorage.setItem('tp_hideShort', hideShortEl.checked ? '1' : '0'); } catch (e) {} });
 
   const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 
@@ -170,7 +174,7 @@
     if (!text) return;
     // Only finished sentences go to the AI. Trailing-off fragments are shown as-is so nothing gets invented.
     if (!/[.?!]["')\]]*$/.test(text)) { addUnfinished(text); return; }
-    if (isSkippable(text)) { addSkipped(text); return; }
+    if (isSkippable(text)) { if (!hideShortEl.checked) addSkipped(text); return; }
     analyse(text);
   }
 
