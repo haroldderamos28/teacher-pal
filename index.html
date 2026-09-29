@@ -69,7 +69,7 @@
   <div class="cols"><div>Student said</div><div>Feedback</div></div>
   <div id="rows"></div>
   <div id="interim" class="interim"></div>
-  <div class="ver">version 6</div>
+  <div class="ver">version 7</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -91,6 +91,23 @@
   extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
 
   const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+
+  // Short acknowledgements / backchannel replies that don't need AI feedback.
+  // Matched only as a WHOLE reply (after stripping punctuation), not as part of a longer sentence.
+  const SKIP_PHRASES = new Set([
+    'ok','okay','alright','all right','right','yes','yeah','yep','yup','no','nope','nah',
+    'sure','sure thing','of course','fine','good','great','cool','nice','wow','really',
+    'i see','i understand','i know','got it','understood','exactly','correct','true',
+    'thanks','thank you','no problem','youre welcome','welcome',
+    'i think so','i dont think so','i guess so','me too','same here','i agree','i disagree',
+    'maybe','perhaps','sometimes','always','never','not really','not yet','not sure',
+    'yes i do','no i dont','yes i am','no im not','yes it is','no it isnt',
+    'yes i did','no i didnt','yes i have','no i havent','yes i can','no i cant',
+    'yes please','no thanks','no thank you'
+  ]);
+  function isSkippable(text) {
+    return SKIP_PHRASES.has(norm(text));
+  }
 
   function line(parent, cls, text) {
     if (!text) return;
@@ -141,14 +158,20 @@
     line(box, 'muted', '(unfinished, not analysed)');
   }
 
+  function addSkipped(text) {
+    const box = makeRow(text);
+    line(box, 'ok', '✓');
+  }
+
   function flush() {
     const text = buffer.trim();
     buffer = '';
     interimEl.textContent = '';
     if (!text) return;
     // Only finished sentences go to the AI. Trailing-off fragments are shown as-is so nothing gets invented.
-    if (/[.?!]["')\]]*$/.test(text)) analyse(text);
-    else addUnfinished(text);
+    if (!/[.?!]["')\]]*$/.test(text)) { addUnfinished(text); return; }
+    if (isSkippable(text)) { addSkipped(text); return; }
+    analyse(text);
   }
 
   async function start() {
