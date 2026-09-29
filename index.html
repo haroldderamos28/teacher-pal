@@ -119,12 +119,13 @@
   </div>
 
   <button id="toggle">Start Listening</button>
+  <button id="pauseBtn" style="display:none">Pause</button>
   <div id="status">Not connected.</div>
   <div id="interim" class="interim"></div>
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 9</div>
+  <div class="ver">version 10</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -133,7 +134,7 @@
   const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
   const translateLevelEl = $('translateLevel');
   const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
-  const toggleBtn = $('toggle'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
+  const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
   function isTranslating() { return langEl.value !== 'en'; }
 
@@ -146,7 +147,17 @@
   }
   updateControlVisibility();
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, buffer = '', watchdog = null, lastActivity = 0;
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, buffer = '', watchdog = null, lastActivity = 0, keepAliveTimer = null;
+
+  function startKeepAlive() {
+    clearInterval(keepAliveTimer);
+    // Deepgram closes the connection after ~10-12s with no audio, so while paused we
+    // send a tiny "still here" ping instead of real audio, to keep the connection open.
+    keepAliveTimer = setInterval(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'KeepAlive' }));
+    }, 8000);
+  }
+  function stopKeepAlive() { clearInterval(keepAliveTimer); }
 
   // Remember the teacher's settings
   try {
@@ -302,12 +313,16 @@
       statusEl.textContent = 'Listening… speak now.';
       recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       recorder.ondataavailable = (e) => {
+        // While paused we keep recording (so the share/mic permission stays alive)
+        // but don't send the audio anywhere, so nothing gets transcribed or analysed.
+        if (paused) return;
         if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(e.data);
       };
       recorder.start(250);
     };
 
     socket.onmessage = (msg) => {
+      if (paused) return;
       const data = JSON.parse(msg.data);
       const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
       const text = alt && alt.transcript;
@@ -331,16 +346,21 @@
     lastActivity = Date.now();
     clearInterval(watchdog);
     watchdog = setInterval(() => {
-      if (!buffer.trim()) return;
+      if (paused || !buffer.trim()) return;
       const waited = Date.now() - lastActivity;
       if (waited > 6000) { flush(); statusEl.textContent = 'Listening… speak now.'; }
       else if (waited > 1500) statusEl.textContent = 'Holding an unfinished sentence… ' + Math.ceil((6000 - waited) / 1000) + 's';
     }, 500);
     toggleBtn.textContent = 'Stop';
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.style.display = '';
   }
 
   function stop() {
     running = false;
+    paused = false;
+    stopKeepAlive();
     clearInterval(watchdog);
     flush();
     if (recorder && recorder.state !== 'inactive') recorder.stop();
@@ -348,10 +368,27 @@
     if (displayStream) displayStream.getTracks().forEach(t => t.stop());
     if (socket && socket.readyState === WebSocket.OPEN) socket.close();
     toggleBtn.textContent = 'Start Listening';
+    pauseBtn.style.display = 'none';
     if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
   }
 
   toggleBtn.addEventListener('click', () => (running ? stop() : start()));
+
+  pauseBtn.addEventListener('click', () => {
+    if (!running) return;
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    if (paused) {
+      flush(); // send anything already captured before the pause takes effect
+      stopKeepAlive();
+      startKeepAlive();
+      statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
+    } else {
+      stopKeepAlive();
+      lastActivity = Date.now();
+      statusEl.textContent = 'Listening… speak now.';
+    }
+  });
 </script>
 </body>
 </html>
