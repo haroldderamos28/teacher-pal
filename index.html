@@ -103,16 +103,20 @@
         <option value="advanced">Advanced</option>
       </select>
     </div>
-    <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
-    <label for="minWords">Only rephrase sentences with at least this many words</label>
-    <select id="minWords">
-      <option value="1">1 (rephrase everything)</option>
-      <option value="4">4</option>
-      <option value="6" selected>6</option>
-      <option value="8">8</option>
-      <option value="10">10</option>
-    </select>
-    <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
+    <div>
+      <label for="minWords">Only rephrase sentences with at least this many words</label>
+      <select id="minWords">
+        <option value="1">1 (rephrase everything)</option>
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div>
+      <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
+      <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
+    </div>
   </div>
 
   <div class="controls" id="translateControls" style="display:none">
@@ -133,7 +137,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 11</div>
+  <div class="ver">version 12</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
