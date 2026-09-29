@@ -104,7 +104,15 @@
       </select>
     </div>
     <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
-    <label class="check"><input type="checkbox" id="hideShort"> Hide short replies (ok, yes, right, etc.) instead of showing a checkmark</label>
+    <label for="minWords">Only rephrase sentences with at least this many words</label>
+    <select id="minWords">
+      <option value="1">1 (rephrase everything)</option>
+      <option value="4">4</option>
+      <option value="6" selected>6</option>
+      <option value="8">8</option>
+      <option value="10">10</option>
+    </select>
+    <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
   </div>
 
   <div class="controls" id="translateControls" style="display:none">
@@ -125,7 +133,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 10</div>
+  <div class="ver">version 11</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -168,9 +176,13 @@
   modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
   levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
   extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
-  const hideShortEl = $('hideShort');
-  try { hideShortEl.checked = localStorage.getItem('tp_hideShort') === '1'; } catch (e) {}
+  const hideShortEl = $('hideShort'), minWordsEl = $('minWords');
+  try {
+    hideShortEl.checked = localStorage.getItem('tp_hideShort') === '1';
+    minWordsEl.value = localStorage.getItem('tp_minWords') || '6';
+  } catch (e) {}
   hideShortEl.addEventListener('change', () => { try { localStorage.setItem('tp_hideShort', hideShortEl.checked ? '1' : '0'); } catch (e) {} });
+  minWordsEl.addEventListener('change', () => { try { localStorage.setItem('tp_minWords', minWordsEl.value); } catch (e) {} });
   try {
     langEl.value = localStorage.getItem('tp_lang') || 'en';
     translateLevelEl.value = localStorage.getItem('tp_translateLevel') || 'basic';
@@ -186,21 +198,14 @@
 
   const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 
-  // Short acknowledgements / backchannel replies that don't need AI feedback.
-  // Matched only as a WHOLE reply (after stripping punctuation), not as part of a longer sentence.
-  const SKIP_PHRASES = new Set([
-    'ok','okay','alright','all right','right','yes','yeah','yep','yup','no','nope','nah',
-    'sure','sure thing','of course','fine','good','great','cool','nice','wow','really',
-    'i see','i understand','i know','got it','understood','exactly','correct','true',
-    'thanks','thank you','no problem','youre welcome','welcome',
-    'i think so','i dont think so','i guess so','me too','same here','i agree','i disagree',
-    'maybe','perhaps','sometimes','always','never','not really','not yet','not sure',
-    'yes i do','no i dont','yes i am','no im not','yes it is','no it isnt',
-    'yes i did','no i didnt','yes i have','no i havent','yes i can','no i cant',
-    'yes please','no thanks','no thank you'
-  ]);
+  // Rather than matching a fixed list of filler phrases (which always misses things like
+  // "alright, that's true"), any complete sentence shorter than the chosen word count is
+  // treated as too short to bother rephrasing — no matter what it says.
+  function wordCount(text) {
+    return (text.match(/[A-Za-z0-9']+/g) || []).length;
+  }
   function isSkippable(text) {
-    return SKIP_PHRASES.has(norm(text));
+    return wordCount(text) < parseInt(minWordsEl.value, 10);
   }
 
   function line(parent, cls, text) {
