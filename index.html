@@ -138,7 +138,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 17</div>
+  <div class="ver">version 18</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -365,7 +365,42 @@
       }
     } catch (e) { statusEl.textContent = 'Could not start audio: ' + e.message; return; }
 
-    // Ask the Worker for a short-lived Deepgram token (valid ~30 seconds, so fetch it right before connecting)
+    const ok = await connectSocket();
+    if (!ok) return; // connectSocket() already set an error message and cleaned up
+
+    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    recorder.ondataavailable = (e) => {
+      // While paused we keep recording (so the share/mic permission stays alive)
+      // but don't send new audio anywhere. The one exception is the single chunk
+      // forced out by clicking Pause itself (see pendingPauseChunk below) — that
+      // chunk holds audio spoken just before the click, and we still want it sent.
+      if (paused && !pendingPauseChunk) return;
+      pendingPauseChunk = false;
+      if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN) socket.send(e.data);
+    };
+    recorder.start(250);
+
+    running = true;
+    lastActivity = Date.now();
+    clearInterval(watchdog);
+    watchdog = setInterval(() => {
+      if (paused || !buffer.trim()) return;
+      const waited = Date.now() - lastActivity;
+      if (waited > 6000) { flush(); statusEl.textContent = 'Listening… speak now.'; }
+      else if (waited > 1500) statusEl.textContent = 'Holding an unfinished sentence… ' + Math.ceil((6000 - waited) / 1000) + 's';
+    }, 500);
+    toggleBtn.textContent = 'Stop';
+    paused = false;
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.style.display = '';
+  }
+
+  // Opens a fresh Deepgram connection (new token + new socket). Used both by start() and
+  // by the Resume button, when the previous connection has expired or dropped during a
+  // pause — reconnecting here never touches the microphone/screen permission, since the
+  // existing recorder and stream are left completely alone and just start sending to
+  // whatever socket this variable currently points to.
+  async function connectSocket() {
     statusEl.textContent = 'Connecting…';
     let token;
     try {
@@ -375,8 +410,8 @@
       token = d.token;
     } catch (e) {
       statusEl.textContent = 'Could not get access: ' + e.message;
-      stop();
-      return;
+      if (!paused) stop();
+      return false;
     }
 
     // English uses nova-3 (most accurate for English). Other languages use nova-2,
@@ -388,18 +423,7 @@
     socket = new WebSocket(url, ['bearer', token]);
 
     socket.onopen = () => {
-      statusEl.textContent = 'Listening… speak now.';
-      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      recorder.ondataavailable = (e) => {
-        // While paused we keep recording (so the share/mic permission stays alive)
-        // but don't send new audio anywhere. The one exception is the single chunk
-        // forced out by clicking Pause itself (see pendingPauseChunk below) — that
-        // chunk holds audio spoken just before the click, and we still want it sent.
-        if (paused && !pendingPauseChunk) return;
-        pendingPauseChunk = false;
-        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(e.data);
-      };
-      recorder.start(250);
+      if (!paused) statusEl.textContent = 'Listening… speak now.';
     };
 
     socket.onmessage = (msg) => {
@@ -426,22 +450,17 @@
       if (data.speech_final && isTranslating()) flush();
     };
 
-    socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
-    socket.onclose = () => { if (running) stop(); };
+    socket.onerror = () => { if (!paused) statusEl.textContent = 'Connection error. Please try again.'; };
+    socket.onclose = () => {
+      // If the connection drops while we're deliberately paused (e.g. it simply expired
+      // during a long pause), that's expected — we just clear the reference and quietly
+      // open a fresh one the moment the teacher clicks Resume. Only treat an unexpected
+      // drop while actively listening as something that needs a full stop.
+      socket = null;
+      if (!paused && running) stop();
+    };
 
-    running = true;
-    lastActivity = Date.now();
-    clearInterval(watchdog);
-    watchdog = setInterval(() => {
-      if (paused || !buffer.trim()) return;
-      const waited = Date.now() - lastActivity;
-      if (waited > 6000) { flush(); statusEl.textContent = 'Listening… speak now.'; }
-      else if (waited > 1500) statusEl.textContent = 'Holding an unfinished sentence… ' + Math.ceil((6000 - waited) / 1000) + 's';
-    }, 500);
-    toggleBtn.textContent = 'Stop';
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-    pauseBtn.style.display = '';
+    return true;
   }
 
   function stop() {
@@ -455,6 +474,7 @@
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (displayStream) displayStream.getTracks().forEach(t => t.stop());
     if (socket && socket.readyState === WebSocket.OPEN) socket.close();
+    socket = null;
     toggleBtn.textContent = 'Start Listening';
     pauseBtn.style.display = 'none';
     if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
@@ -489,7 +509,13 @@
       pauseBtn.textContent = 'Pause';
       stopKeepAlive();
       lastActivity = Date.now();
-      statusEl.textContent = 'Listening… speak now.';
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        // The connection expired or dropped during the pause — reconnect quietly.
+        // The microphone/screen-share permission is untouched, so no prompt reappears.
+        connectSocket();
+      } else {
+        statusEl.textContent = 'Listening… speak now.';
+      }
     }
   });
 </script>
