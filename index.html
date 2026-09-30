@@ -137,7 +137,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 12</div>
+  <div class="ver">version 14</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -159,7 +159,7 @@
   }
   updateControlVisibility();
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, buffer = '', watchdog = null, lastActivity = 0, keepAliveTimer = null;
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, buffer = '', watchdog = null, lastActivity = 0, keepAliveTimer = null, pendingPauseChunk = false, pauseCloseTimer = null;
 
   function startKeepAlive() {
     clearInterval(keepAliveTimer);
@@ -266,16 +266,46 @@
     line(box, 'ok', '✓');
   }
 
+  // Pulls every complete sentence (ending in . ? or !) out of a block of text, in order,
+  // and returns whatever's left over (a trailing fragment with no ending punctuation yet).
+  // This lets a student talk continuously for a long time without the app ever having to
+  // wait for a big pause, and without one giant run-on ever piling up unprocessed.
+  function splitComplete(text) {
+    const re = /[^.?!]*[.?!]+["')\]]*\s*/g;
+    const complete = [];
+    let lastIndex = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      const piece = m[0].trim();
+      if (piece) complete.push(piece);
+      lastIndex = re.lastIndex;
+    }
+    return { complete, rest: text.slice(lastIndex).trim() };
+  }
+
+  function handleSentence(text) {
+    if (isSkippable(text)) { if (!hideShortEl.checked) addSkipped(text); return; }
+    analyse(text);
+  }
+
+  // Called every time new transcribed text arrives in English mode: peels off any
+  // sentence(s) that are now complete and sends each one immediately, keeping only the
+  // genuine trailing fragment (if any) in the buffer to wait for more words.
+  function processBuffer() {
+    const { complete, rest } = splitComplete(buffer);
+    buffer = rest;
+    interimEl.textContent = rest;
+    complete.forEach(handleSentence);
+  }
+
+  // Used for: translation mode (which flushes the whole buffer at once), and for clearing
+  // out a genuine leftover fragment in English mode (nothing left to extract from it).
   function flush() {
     const text = buffer.trim();
     buffer = '';
     interimEl.textContent = '';
     if (!text) return;
     if (isTranslating()) { translateText(text); return; }
-    // Only finished sentences go to the AI. Trailing-off fragments are shown as-is so nothing gets invented.
-    if (!/[.?!]["')\]]*$/.test(text)) { addUnfinished(text); return; }
-    if (isSkippable(text)) { if (!hideShortEl.checked) addSkipped(text); return; }
-    analyse(text);
+    addUnfinished(text);
   }
 
   async function start() {
@@ -323,29 +353,38 @@
       recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       recorder.ondataavailable = (e) => {
         // While paused we keep recording (so the share/mic permission stays alive)
-        // but don't send the audio anywhere, so nothing gets transcribed or analysed.
-        if (paused) return;
+        // but don't send new audio anywhere. The one exception is the single chunk
+        // forced out by clicking Pause itself (see pendingPauseChunk below) — that
+        // chunk holds audio spoken just before the click, and we still want it sent.
+        if (paused && !pendingPauseChunk) return;
+        pendingPauseChunk = false;
         if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(e.data);
       };
       recorder.start(250);
     };
 
     socket.onmessage = (msg) => {
-      if (paused) return;
+      // We don't drop results just because we're paused: once paused, no new audio is
+      // being sent, so anything still arriving here is the transcript for words spoken
+      // just before the click — exactly what we still want to capture and show.
       const data = JSON.parse(msg.data);
       const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
       const text = alt && alt.transcript;
       if (text) {
         lastActivity = Date.now();
-        if (data.is_final) { buffer += text + ' '; interimEl.textContent = buffer; }
-        else { interimEl.textContent = buffer + text; }
+        if (data.is_final) {
+          buffer += text + ' ';
+          // English mode: pull out any sentence(s) that just became complete right away,
+          // instead of waiting for the student to stop talking entirely.
+          if (!isTranslating()) processBuffer();
+          else interimEl.textContent = buffer;
+        } else {
+          interimEl.textContent = buffer + text;
+        }
       }
-      if (data.speech_final) {
-        if (isTranslating()) flush(); // translation doesn't need the sentence-ending punctuation check
-        // A finished English sentence (ends with . ? or !) goes out right away.
-        // Anything else waits; the watchdog below shows it as unfinished after 6 quiet seconds.
-        else if (/[.?!]["')\]]*\s*$/.test(buffer.trim())) flush();
-      }
+      // Translation mode still waits for Deepgram's own pause signal, since a beginner's
+      // native-language utterance doesn't need to match the . ? ! sentence-ending check.
+      if (data.speech_final && isTranslating()) flush();
     };
 
     socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
@@ -369,6 +408,7 @@
   function stop() {
     running = false;
     paused = false;
+    clearTimeout(pauseCloseTimer);
     stopKeepAlive();
     clearInterval(watchdog);
     flush();
@@ -385,14 +425,26 @@
 
   pauseBtn.addEventListener('click', () => {
     if (!running) return;
-    paused = !paused;
-    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
-    if (paused) {
-      flush(); // send anything already captured before the pause takes effect
-      stopKeepAlive();
+    if (!paused) {
+      paused = true;
+      pauseBtn.textContent = 'Resume';
+      statusEl.textContent = 'Pausing…';
+      // Force out whatever audio is already sitting in the recorder's buffer (up to ~250ms
+      // of already-spoken audio) so the last moment before the click isn't lost, then give
+      // the server a brief moment to send back its transcript before we close off the
+      // sentence — otherwise words spoken right before the click could get cut short.
+      pendingPauseChunk = true;
+      try { recorder.requestData(); } catch (e) {}
       startKeepAlive();
-      statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
+      clearTimeout(pauseCloseTimer);
+      pauseCloseTimer = setTimeout(() => {
+        flush();
+        if (paused) statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
+      }, 800);
     } else {
+      clearTimeout(pauseCloseTimer);
+      paused = false;
+      pauseBtn.textContent = 'Pause';
       stopKeepAlive();
       lastActivity = Date.now();
       statusEl.textContent = 'Listening… speak now.';
