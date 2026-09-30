@@ -138,7 +138,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 18</div>
+  <div class="ver">version 19</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -451,19 +451,23 @@
     };
 
     socket.onerror = () => { if (!paused) statusEl.textContent = 'Connection error. Please try again.'; };
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       // If the connection drops while we're deliberately paused (e.g. it simply expired
       // during a long pause), that's expected — we just clear the reference and quietly
       // open a fresh one the moment the teacher clicks Resume. Only treat an unexpected
       // drop while actively listening as something that needs a full stop.
       socket = null;
-      if (!paused && running) stop();
+      if (!paused && running) {
+        // Show exactly why it closed (code + reason) instead of a generic "Stopped.",
+        // so a real problem is visible on-screen instead of needing DevTools to diagnose.
+        stop('Connection closed (code ' + event.code + (event.reason ? ': ' + event.reason : '') + ').');
+      }
     };
 
     return true;
   }
 
-  function stop() {
+  function stop(reason) {
     running = false;
     paused = false;
     clearTimeout(pauseCloseTimer);
@@ -477,7 +481,8 @@
     socket = null;
     toggleBtn.textContent = 'Start Listening';
     pauseBtn.style.display = 'none';
-    if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
+    if (reason) statusEl.textContent = reason;
+    else if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
   }
 
   toggleBtn.addEventListener('click', () => (running ? stop() : start()));
