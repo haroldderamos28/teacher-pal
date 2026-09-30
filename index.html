@@ -27,6 +27,7 @@
   .interim { color: #999; padding: .7rem 0; min-height: 1.4rem; }
   .err { color: #b00020; }
   .muted { color: #888; font-style: italic; font-weight: 400; }
+  .miniBtn { padding: .3rem .7rem; font-size: .85rem; margin: 0 .5rem .3rem 0; cursor: pointer; }
   .ver { color: #aaa; font-size: .75rem; margin-top: 2rem; }
   @media (max-width: 600px) { .controls, .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
 </style>
@@ -137,7 +138,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 14</div>
+  <div class="ver">version 15</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -259,6 +260,28 @@
   function addUnfinished(text) {
     const box = makeRow(text);
     line(box, 'muted', '(unfinished, not analysed)');
+  }
+
+  // Shown for whatever was left mid-sentence when Pause was clicked. Rather than the app
+  // guessing whether it's worth sending to the AI, the teacher decides.
+  function addPendingDecision(text) {
+    const box = makeRow(text);
+    const yesBtn = document.createElement('button');
+    yesBtn.className = 'miniBtn';
+    yesBtn.textContent = isTranslating() ? 'Translate' : 'Rephrase';
+    const noBtn = document.createElement('button');
+    noBtn.className = 'miniBtn';
+    noBtn.textContent = 'Skip';
+    box.append(yesBtn, noBtn);
+
+    yesBtn.addEventListener('click', () => {
+      box.parentElement.remove(); // analyse()/translateText() will add its own fresh row
+      if (isTranslating()) translateText(text); else analyse(text);
+    });
+    noBtn.addEventListener('click', () => {
+      box.innerHTML = '';
+      line(box, 'muted', '(skipped)');
+    });
   }
 
   function addSkipped(text) {
@@ -438,7 +461,10 @@
       startKeepAlive();
       clearTimeout(pauseCloseTimer);
       pauseCloseTimer = setTimeout(() => {
-        flush();
+        const text = buffer.trim();
+        buffer = '';
+        interimEl.textContent = '';
+        if (text) addPendingDecision(text);
         if (paused) statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
       }, 800);
     } else {
