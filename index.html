@@ -1,477 +1,228 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teacher Pal – Live Coaching</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
-  h1 { font-size: 1.4rem; }
-  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1rem; }
-  label { display: block; font-size: .9rem; color: #555; margin-top: .8rem; }
-  select { width: 100%; padding: .55rem; margin-top: .25rem; box-sizing: border-box; }
-  .check { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .95rem; color: #333; }
-  button { padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
-  #status { margin: .8rem 0; color: #666; }
-  .cols, .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
-  .cols { font-weight: 600; border-bottom: 2px solid #ddd; padding-bottom: .4rem; }
-  .row { padding: .7rem 0; border-bottom: 1px solid #eee; line-height: 1.5; }
-  .fb div { margin-bottom: .25rem; }
-  .fix { color: #b00020; font-weight: 500; }
-  .nat { color: #0a6b3a; font-weight: 500; }
-  .tip { color: #555; }
-  .ask { color: #1a4fa0; }
-  .ok { color: #888; }
-  .trn { color: #0a6b3a; font-weight: 500; }
-  .sug { color: #1a4fa0; }
-  .interim { color: #999; padding: .7rem 0; min-height: 1.4rem; }
-  .err { color: #b00020; }
-  .muted { color: #888; font-style: italic; font-weight: 400; }
-  .miniBtn { padding: .3rem .7rem; font-size: .85rem; margin: 0 .5rem .3rem 0; cursor: pointer; }
-  .ver { color: #aaa; font-size: .75rem; margin-top: 2rem; }
-  @media (max-width: 600px) { .controls, .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
-</style>
-</head>
-<body>
-  <h1>Live Coaching</h1>
+// Teacher Pal Worker
+// Routes:
+//   POST /token  -> gives the page a 30-second Deepgram token (your real key never leaves this Worker)
+//   POST /       -> analyses one learner sentence with free Workers AI
+// Needs: Workers AI binding named "AI", and a secret named DEEPGRAM_API_KEY.
 
-  <div class="controls">
-    <div>
-      <label for="lang">Student is speaking</label>
-      <select id="lang">
-        <option value="en">English (get corrections)</option>
-        <optgroup label="Translate to English">
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="zh">Mandarin Chinese</option>
-          <option value="zh-TW">Mandarin Chinese (Traditional)</option>
-          <option value="zh-HK">Cantonese</option>
-          <option value="vi">Vietnamese</option>
-          <option value="th">Thai</option>
-          <option value="id">Indonesian</option>
-          <option value="ms">Malay</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="ru">Russian</option>
-          <option value="uk">Ukrainian</option>
-          <option value="pl">Polish</option>
-          <option value="tr">Turkish</option>
-          <option value="hi">Hindi</option>
-          <option value="el">Greek</option>
-          <option value="ro">Romanian</option>
-          <option value="hu">Hungarian</option>
-          <option value="cs">Czech</option>
-          <option value="sk">Slovak</option>
-          <option value="bg">Bulgarian</option>
-          <option value="sv">Swedish</option>
-          <option value="da">Danish</option>
-          <option value="no">Norwegian</option>
-          <option value="fi">Finnish</option>
-        </optgroup>
-      </select>
-    </div>
-    <div>
-      <label for="source">Audio source</label>
-      <select id="source">
-        <option value="tab">Tab / system audio (the other person's voice)</option>
-        <option value="mic">My microphone (my voice)</option>
-      </select>
-    </div>
-  </div>
+const ALLOWED_ORIGINS = [
+  'https://haroldderamos28.github.io',
+  'null', // lets you keep testing from a file on your computer; remove later
+];
 
-  <div class="controls" id="englishControls">
-    <div>
-      <label for="mode">Mode</label>
-      <select id="mode">
-        <option value="natural">Natural</option>
-        <option value="accurate">Accurate (corrections only)</option>
-        <option value="casual">Casual</option>
-        <option value="business">Business</option>
-        <option value="professional">Professional (formal)</option>
-        <option value="concise">Concise</option>
-        <option value="student">Student level (simple words)</option>
-      </select>
-    </div>
-    <div>
-      <label for="level">Difficulty</label>
-      <select id="level">
-        <option value="basic">Basic</option>
-        <option value="intermediate" selected>Intermediate</option>
-        <option value="advanced">Advanced</option>
-      </select>
-    </div>
-    <div>
-      <label for="minWords">Only rephrase sentences with at least this many words</label>
-      <select id="minWords">
-        <option value="1">1 (rephrase everything)</option>
-        <option value="4">4</option>
-        <option value="6" selected>6</option>
-        <option value="8">8</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-    <div>
-      <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
-      <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
-    </div>
-  </div>
+// Most accurate model first — it's slower (a few seconds) but far less likely to guess at
+// or change what the student actually said. The fast 3B model is now only a last resort,
+// used if the bigger ones fail to return a usable answer.
+const MODELS = [
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
+  '@cf/meta/llama-3.2-3b-instruct',
+];
 
-  <div class="controls" id="translateControls" style="display:none">
-    <div>
-      <label for="translateLevel">Student's level</label>
-      <select id="translateLevel">
-        <option value="basic">Basic</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="advanced">Advanced</option>
-      </select>
-    </div>
-  </div>
+// What the "natural" line should sound like in each mode (null = corrections only)
+const MODES = {
+  accurate: null,
+  natural: 'how a fluent native speaker would normally say it',
+  casual: 'relaxed, everyday conversational English',
+  business: 'natural, professional workplace English',
+  professional: 'formal workplace communication (polite, polished, suitable for formal emails and meetings)',
+  concise: 'shorter and clearer, with the same meaning',
+  student: 'simple, clear English using easy words and short sentences',
+};
 
-  <button id="toggle">Start Listening</button>
-  <button id="pauseBtn" style="display:none">Pause</button>
-  <div id="status">Not connected.</div>
-  <div id="interim" class="interim"></div>
+const LEVELS = {
+  basic: 'The learner is a beginner: use very simple words and short sentences.',
+  intermediate: 'The learner is intermediate: use common everyday vocabulary.',
+  advanced: 'The learner is advanced: richer, more precise vocabulary is welcome.',
+};
 
-  <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
-  <div id="rows"></div>
-  <div class="ver">version 16</div>
+// Deepgram language code -> plain English name, used to phrase the translation prompt.
+const LANGUAGE_NAMES = {
+  ja: 'Japanese', ko: 'Korean', zh: 'Mandarin Chinese', 'zh-TW': 'Mandarin Chinese (Traditional)',
+  'zh-HK': 'Cantonese', vi: 'Vietnamese', th: 'Thai', id: 'Indonesian', ms: 'Malay',
+  es: 'Spanish', fr: 'French', de: 'German', it: 'Italian', pt: 'Portuguese', nl: 'Dutch',
+  ru: 'Russian', uk: 'Ukrainian', pl: 'Polish', tr: 'Turkish', hi: 'Hindi', el: 'Greek',
+  ro: 'Romanian', hu: 'Hungarian', cs: 'Czech', sk: 'Slovak', bg: 'Bulgarian', sv: 'Swedish',
+  da: 'Danish', no: 'Norwegian', fi: 'Finnish', et: 'Estonian', lv: 'Latvian', lt: 'Lithuanian',
+  ca: 'Catalan',
+};
 
-<script>
-  const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
+function corsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const h = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+  if (ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin;
+  return h;
+}
 
-  const $ = (id) => document.getElementById(id);
-  const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
-  const translateLevelEl = $('translateLevel');
-  const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
-  const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
+const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
-  function isTranslating() { return langEl.value !== 'en'; }
+function parseJson(raw) {
+  if (raw && typeof raw === 'object') return raw;
+  const s = String(raw || '');
+  const start = s.indexOf('{');
+  if (start === -1) return null;
 
-  function updateControlVisibility() {
-    const t = isTranslating();
-    englishControlsEl.style.display = t ? 'none' : '';
-    translateControlsEl.style.display = t ? '' : 'none';
-    $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
-    $('colRight').textContent = t ? 'English translation' : 'Feedback';
+  // Walk the string from the first "{" and find where that SAME object closes,
+  // ignoring braces that appear inside quoted strings. This copes with models
+  // that add extra text or stray braces after the real JSON object.
+  let depth = 0, inStr = false, escape = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (escape) escape = false;
+      else if (c === '\\') escape = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') { inStr = true; continue; }
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(s.slice(start, i + 1)); } catch { return null; }
+      }
+    }
   }
-  updateControlVisibility();
+  return null;
+}
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, buffer = '', watchdog = null, lastActivity = 0, keepAliveTimer = null, pendingPauseChunk = false, pauseCloseTimer = null;
-
-  function startKeepAlive() {
-    clearInterval(keepAliveTimer);
-    // Deepgram closes the connection after ~10-12s with no audio, so while paused we
-    // send a tiny "still here" ping instead of real audio, to keep the connection open.
-    keepAliveTimer = setInterval(() => {
-      if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'KeepAlive' }));
-    }, 8000);
+function buildPrompt(mode, level, extras) {
+  const natural = MODES[mode];
+  const keys = [
+    '"correction": the sentence with grammar mistakes fixed, changing as little as possible. If it is already correct, repeat it exactly.',
+  ];
+  if (natural) keys.push('"natural": the same idea rewritten as ' + natural + '. Keep the meaning.');
+  keys.push('"explanation": one short sentence (max 15 words) explaining the most important correction. Empty string if nothing needed correcting.');
+  keys.push('"followup": one short, natural question the teacher could ask next to keep the conversation going, or an empty string.');
+  if (extras) {
+    keys.push('"alternatives": an array of 2 other natural ways to say the same idea.');
+    keys.push('"vocabulary": one stronger word or phrase that fits this context, with a tiny example, or an empty string.');
   }
-  function stopKeepAlive() { clearInterval(keepAliveTimer); }
+  return (
+    'You assist an English teacher. You receive one sentence spoken by an English learner, from speech transcription, ' +
+    'so ignore missing punctuation or capital letters. ' + (LEVELS[level] || LEVELS.intermediate) + ' ' +
+    'Reply with ONLY a JSON object with these keys:\n' + keys.join('\n') + '\n' +
+    'Never invent meaning the learner did not express. Be brief. Use exactly these keys, no others, and no nested objects — every value is a plain string or array of strings. No text outside the JSON.'
+  );
+}
 
-  // Remember the teacher's settings
-  try {
-    modeEl.value = localStorage.getItem('tp_mode') || 'natural';
-    levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
-    extrasEl.checked = localStorage.getItem('tp_extras') === '1';
-  } catch (e) {}
-  modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
-  levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
-  extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
-  const hideShortEl = $('hideShort'), minWordsEl = $('minWords');
-  try {
-    hideShortEl.checked = localStorage.getItem('tp_hideShort') === '1';
-    minWordsEl.value = localStorage.getItem('tp_minWords') || '6';
-  } catch (e) {}
-  hideShortEl.addEventListener('change', () => { try { localStorage.setItem('tp_hideShort', hideShortEl.checked ? '1' : '0'); } catch (e) {} });
-  minWordsEl.addEventListener('change', () => { try { localStorage.setItem('tp_minWords', minWordsEl.value); } catch (e) {} });
-  try {
-    langEl.value = localStorage.getItem('tp_lang') || 'en';
-    translateLevelEl.value = localStorage.getItem('tp_translateLevel') || 'basic';
-  } catch (e) {}
-  updateControlVisibility();
-  langEl.addEventListener('change', () => {
-    try { localStorage.setItem('tp_lang', langEl.value); } catch (e) {}
-    updateControlVisibility();
-    // Switching languages mid-session needs a fresh Deepgram connection.
-    if (running) { stop(); start(); }
-  });
-  translateLevelEl.addEventListener('change', () => { try { localStorage.setItem('tp_translateLevel', translateLevelEl.value); } catch (e) {} });
+function buildTranslatePrompt(langCode, level) {
+  const lang = LANGUAGE_NAMES[langCode] || 'the student\'s language';
+  return (
+    'You assist an English teacher whose student is a beginner English learner. The student just said something ' +
+    'in ' + lang + ' (from speech transcription, so ignore missing punctuation). ' + (LEVELS[level] || LEVELS.basic) + ' ' +
+    'Reply with ONLY a JSON object with these keys:\n' +
+    '"translation": a natural, accurate English translation of exactly what they said. Do not add anything they did not say.\n' +
+    '"suggestion": one short, simple English sentence the student could learn to say to express this themselves, matching their level, or an empty string if none fits.\n' +
+    'Be brief. Use exactly these keys, no others, no nested objects. No text outside the JSON.'
+  );
+}
 
-  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-
-  // Rather than matching a fixed list of filler phrases (which always misses things like
-  // "alright, that's true"), any complete sentence shorter than the chosen word count is
-  // treated as too short to bother rephrasing — no matter what it says.
-  function wordCount(text) {
-    return (text.match(/[A-Za-z0-9']+/g) || []).length;
-  }
-  function isSkippable(text) {
-    return wordCount(text) < parseInt(minWordsEl.value, 10);
-  }
-
-  function line(parent, cls, text) {
-    if (!text) return;
-    const d = document.createElement('div');
-    d.className = cls;
-    d.textContent = text;
-    parent.append(d);
-  }
-
-  function makeRow(text) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const left = document.createElement('div'); left.textContent = text;
-    const right = document.createElement('div'); right.className = 'fb';
-    row.append(left, right);
-    rowsEl.prepend(row);
-    return right;
-  }
-
-  async function analyse(text) {
-    const box = makeRow(text);
-    box.textContent = '…';
-    try {
-      const res = await fetch(WORKER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, mode: modeEl.value, level: levelEl.value, extras: extrasEl.checked }),
+export default {
+  async fetch(request, env) {
+    const cors = corsHeaders(request);
+    const json = (obj, status = 200) =>
+      new Response(JSON.stringify(obj), {
+        status,
+        headers: { 'Content-Type': 'application/json', ...cors },
       });
-      const d = await res.json();
-      box.textContent = '';
-      if (!d.correction) { line(box, 'err', 'Error: ' + (d.error || 'unknown')); return; }
 
-      if (norm(d.correction) === norm(text)) line(box, 'ok', '✓ No correction needed');
-      else line(box, 'fix', '🔴 ' + d.correction);
-      if (d.natural && norm(d.natural) !== norm(d.correction)) line(box, 'nat', '🟢 ' + d.natural);
-      line(box, 'tip', d.explanation ? '💡 ' + d.explanation : '');
-      line(box, 'ask', d.followup ? '💬 ' + d.followup : '');
-      if (d.alternatives && d.alternatives.length) line(box, 'tip', '🔁 ' + d.alternatives.join('  •  '));
-      line(box, 'tip', d.vocabulary ? '📚 ' + d.vocabulary : '');
-    } catch (e) {
-      box.textContent = '';
-      line(box, 'err', 'Could not reach the server.');
-    }
-  }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method !== 'POST') return json({ error: 'Use POST' }, 405);
 
-  // Shown for any leftover fragment — whether the student trailed off naturally during a
-  // pause, or paused for 6+ seconds mid-sentence while still listening. Rather than the
-  // app guessing whether it's worth sending to the AI, the teacher decides.
-  function addPendingDecision(text) {
-    const box = makeRow(text);
-    const yesBtn = document.createElement('button');
-    yesBtn.className = 'miniBtn';
-    yesBtn.textContent = isTranslating() ? 'Translate' : 'Rephrase';
-    const noBtn = document.createElement('button');
-    noBtn.className = 'miniBtn';
-    noBtn.textContent = 'Skip';
-    box.append(yesBtn, noBtn);
+    const path = new URL(request.url).pathname;
 
-    yesBtn.addEventListener('click', () => {
-      box.parentElement.remove(); // analyse()/translateText() will add its own fresh row
-      if (isTranslating()) translateText(text); else analyse(text);
-    });
-    noBtn.addEventListener('click', () => {
-      box.innerHTML = '';
-      line(box, 'muted', '(skipped)');
-    });
-  }
-
-  function addSkipped(text) {
-    const box = makeRow(text);
-    line(box, 'ok', '✓');
-  }
-
-  // Pulls every complete sentence (ending in . ? or !) out of a block of text, in order,
-  // and returns whatever's left over (a trailing fragment with no ending punctuation yet).
-  // This lets a student talk continuously for a long time without the app ever having to
-  // wait for a big pause, and without one giant run-on ever piling up unprocessed.
-  function splitComplete(text) {
-    const re = /[^.?!]*[.?!]+["')\]]*\s*/g;
-    const complete = [];
-    let lastIndex = 0, m;
-    while ((m = re.exec(text)) !== null) {
-      const piece = m[0].trim();
-      if (piece) complete.push(piece);
-      lastIndex = re.lastIndex;
-    }
-    return { complete, rest: text.slice(lastIndex).trim() };
-  }
-
-  function handleSentence(text) {
-    if (isSkippable(text)) { if (!hideShortEl.checked) addSkipped(text); return; }
-    analyse(text);
-  }
-
-  // Called every time new transcribed text arrives in English mode: peels off any
-  // sentence(s) that are now complete and sends each one immediately, keeping only the
-  // genuine trailing fragment (if any) in the buffer to wait for more words.
-  function processBuffer() {
-    const { complete, rest } = splitComplete(buffer);
-    buffer = rest;
-    interimEl.textContent = rest;
-    complete.forEach(handleSentence);
-  }
-
-  // Used for: translation mode (which flushes the whole buffer at once), and for clearing
-  // out a genuine leftover fragment in English mode (nothing left to extract from it).
-  function flush() {
-    const text = buffer.trim();
-    buffer = '';
-    interimEl.textContent = '';
-    if (!text) return;
-    if (isTranslating()) { translateText(text); return; }
-    addPendingDecision(text);
-  }
-
-  async function start() {
-    try {
-      if ($('source').value === 'mic') {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } else {
-        displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        const audioTracks = displayStream.getAudioTracks();
-        if (!audioTracks.length) {
-          displayStream.getTracks().forEach(t => t.stop());
-          statusEl.textContent = 'No audio shared. Pick a Chrome Tab (or Entire Screen on Windows) and tick "Share tab audio" / "Share system audio".';
-          return;
+    // ---- Deepgram temporary token ----
+    if (path === '/token') {
+      if (!env.DEEPGRAM_API_KEY) return json({ error: 'DEEPGRAM_API_KEY secret is missing' }, 500);
+      try {
+        const r = await fetch('https://api.deepgram.com/v1/auth/grant', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Token ' + env.DEEPGRAM_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await r.json();
+        if (!r.ok || !data.access_token) {
+          return json({ error: 'Deepgram refused: ' + (data.err_msg || data.message || r.status) }, 502);
         }
-        displayStream.getVideoTracks().forEach(t => t.stop());
-        stream = new MediaStream(audioTracks);
-        audioTracks[0].onended = () => { if (running) stop(); };
+        return json({ token: data.access_token });
+      } catch (e) {
+        return json({ error: 'Could not reach Deepgram' }, 502);
       }
-    } catch (e) { statusEl.textContent = 'Could not start audio: ' + e.message; return; }
-
-    // Ask the Worker for a short-lived Deepgram token (valid ~30 seconds, so fetch it right before connecting)
-    statusEl.textContent = 'Connecting…';
-    let token;
-    try {
-      const r = await fetch(WORKER + '/token', { method: 'POST' });
-      const d = await r.json();
-      if (!d.token) throw new Error(d.error || 'No token');
-      token = d.token;
-    } catch (e) {
-      statusEl.textContent = 'Could not get access: ' + e.message;
-      stop();
-      return;
     }
 
-    // English uses nova-3 (most accurate for English). Other languages use nova-2,
-    // which covers 36+ languages including Japanese, Korean, and Mandarin.
-    const dgModel = isTranslating() ? 'nova-2' : 'nova-3';
-    const dgLang = isTranslating() ? langEl.value : 'en';
-    const url = 'wss://api.deepgram.com/v1/listen?model=' + dgModel + '&language=' + dgLang +
-      '&smart_format=true&interim_results=true&endpointing=1200';
-    socket = new WebSocket(url, ['bearer', token]);
+    // ---- Analyse or translate one sentence ----
+    let body;
+    try { body = await request.json(); } catch { return json({ error: 'Bad JSON' }, 400); }
 
-    socket.onopen = () => {
-      statusEl.textContent = 'Listening… speak now.';
-      recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      recorder.ondataavailable = (e) => {
-        // While paused we keep recording (so the share/mic permission stays alive)
-        // but don't send new audio anywhere. The one exception is the single chunk
-        // forced out by clicking Pause itself (see pendingPauseChunk below) — that
-        // chunk holds audio spoken just before the click, and we still want it sent.
-        if (paused && !pendingPauseChunk) return;
-        pendingPauseChunk = false;
-        if (e.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(e.data);
-      };
-      recorder.start(250);
-    };
+    const text = String(body.text || '').trim().slice(0, 500);
+    if (!text) return json({ error: 'No text' }, 400);
+    const level = body.level in LEVELS ? body.level : 'intermediate';
+    const translate = body.translate === true;
 
-    socket.onmessage = (msg) => {
-      // We don't drop results just because we're paused: once paused, no new audio is
-      // being sent, so anything still arriving here is the transcript for words spoken
-      // just before the click — exactly what we still want to capture and show.
-      const data = JSON.parse(msg.data);
-      const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
-      const text = alt && alt.transcript;
-      if (text) {
-        lastActivity = Date.now();
-        if (data.is_final) {
-          buffer += text + ' ';
-          // English mode: pull out any sentence(s) that just became complete right away,
-          // instead of waiting for the student to stop talking entirely.
-          if (!isTranslating()) processBuffer();
-          else interimEl.textContent = buffer;
-        } else {
-          interimEl.textContent = buffer + text;
-        }
-      }
-      // Translation mode still waits for Deepgram's own pause signal, since a beginner's
-      // native-language utterance doesn't need to match the . ? ! sentence-ending check.
-      if (data.speech_final && isTranslating()) flush();
-    };
-
-    socket.onerror = () => { statusEl.textContent = 'Connection error. Please try again.'; };
-    socket.onclose = () => { if (running) stop(); };
-
-    running = true;
-    lastActivity = Date.now();
-    clearInterval(watchdog);
-    watchdog = setInterval(() => {
-      if (paused || !buffer.trim()) return;
-      const waited = Date.now() - lastActivity;
-      if (waited > 6000) { flush(); statusEl.textContent = 'Listening… speak now.'; }
-      else if (waited > 1500) statusEl.textContent = 'Holding an unfinished sentence… ' + Math.ceil((6000 - waited) / 1000) + 's';
-    }, 500);
-    toggleBtn.textContent = 'Stop';
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-    pauseBtn.style.display = '';
-  }
-
-  function stop() {
-    running = false;
-    paused = false;
-    clearTimeout(pauseCloseTimer);
-    stopKeepAlive();
-    clearInterval(watchdog);
-    flush();
-    if (recorder && recorder.state !== 'inactive') recorder.stop();
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (displayStream) displayStream.getTracks().forEach(t => t.stop());
-    if (socket && socket.readyState === WebSocket.OPEN) socket.close();
-    toggleBtn.textContent = 'Start Listening';
-    pauseBtn.style.display = 'none';
-    if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
-  }
-
-  toggleBtn.addEventListener('click', () => (running ? stop() : start()));
-
-  pauseBtn.addEventListener('click', () => {
-    if (!running) return;
-    if (!paused) {
-      paused = true;
-      pauseBtn.textContent = 'Resume';
-      statusEl.textContent = 'Pausing…';
-      // Force out whatever audio is already sitting in the recorder's buffer (up to ~250ms
-      // of already-spoken audio) so the last moment before the click isn't lost, then give
-      // the server a brief moment to send back its transcript before we close off the
-      // sentence — otherwise words spoken right before the click could get cut short.
-      pendingPauseChunk = true;
-      try { recorder.requestData(); } catch (e) {}
-      startKeepAlive();
-      clearTimeout(pauseCloseTimer);
-      pauseCloseTimer = setTimeout(() => {
-        const text = buffer.trim();
-        buffer = '';
-        interimEl.textContent = '';
-        if (text) addPendingDecision(text);
-        if (paused) statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
-      }, 800);
+    let messages, maxTokens;
+    if (translate) {
+      const langCode = String(body.lang || '').trim();
+      messages = [
+        { role: 'system', content: buildTranslatePrompt(langCode, level) },
+        { role: 'user', content: text },
+      ];
+      maxTokens = 200;
     } else {
-      clearTimeout(pauseCloseTimer);
-      paused = false;
-      pauseBtn.textContent = 'Pause';
-      stopKeepAlive();
-      lastActivity = Date.now();
-      statusEl.textContent = 'Listening… speak now.';
+      const mode = body.mode in MODES ? body.mode : 'natural';
+      const extras = body.extras === true;
+      messages = [
+        { role: 'system', content: buildPrompt(mode, level, extras) },
+        { role: 'user', content: text },
+      ];
+      // Scale the reply budget with how long the sentence is, so a longer sentence
+      // (e.g. one with no internal punctuation for the client to split on) still gets
+      // enough room to come back as valid JSON instead of being cut off mid-reply.
+      const base = extras ? 300 : 170;
+      maxTokens = Math.min(500, base + Math.max(0, text.split(/\s+/).length - 12) * 6);
     }
-  });
-</script>
-</body>
-</html>
+
+    let lastError = 'No model worked';
+    for (const model of MODELS) {
+      try {
+        const r = await env.AI.run(model, { messages, max_tokens: maxTokens });
+        const raw = r.response ?? r.choices?.[0]?.message?.content ?? '';
+        const p = parseJson(raw);
+
+        if (translate) {
+          // If we can't get valid, well-formed JSON back, don't show the model's raw
+          // text to the teacher — try the next model instead.
+          if (!p || typeof p.translation !== 'string' || !p.translation.trim()) {
+            lastError = 'Model returned an unusable answer';
+            continue;
+          }
+          return json({ translation: str(p.translation), suggestion: str(p.suggestion), model });
+        }
+
+        const mode = body.mode in MODES ? body.mode : 'natural';
+        if (!p || typeof p.correction !== 'string' || !p.correction.trim()) {
+          lastError = 'Model returned an unusable answer';
+          continue;
+        }
+        const extras = body.extras === true;
+        return json({
+          correction: str(p.correction),
+          natural: MODES[mode] ? str(p && p.natural) : '',
+          explanation: str(p && p.explanation),
+          followup: str(p && p.followup),
+          alternatives: extras && p && Array.isArray(p.alternatives) ? p.alternatives.map(str).filter(Boolean).slice(0, 3) : [],
+          vocabulary: extras ? str(p && p.vocabulary) : '',
+          model,
+        });
+      } catch (e) {
+        lastError = String(e && e.message ? e.message : e);
+      }
+    }
+    return json({ error: lastError }, 502);
+  },
+};
