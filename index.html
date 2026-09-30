@@ -138,7 +138,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 15</div>
+  <div class="ver">version 16</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -257,13 +257,9 @@
     }
   }
 
-  function addUnfinished(text) {
-    const box = makeRow(text);
-    line(box, 'muted', '(unfinished, not analysed)');
-  }
-
-  // Shown for whatever was left mid-sentence when Pause was clicked. Rather than the app
-  // guessing whether it's worth sending to the AI, the teacher decides.
+  // Shown for any leftover fragment — whether the student trailed off naturally during a
+  // pause, or paused for 6+ seconds mid-sentence while still listening. Rather than the
+  // app guessing whether it's worth sending to the AI, the teacher decides.
   function addPendingDecision(text) {
     const box = makeRow(text);
     const yesBtn = document.createElement('button');
@@ -328,7 +324,7 @@
     interimEl.textContent = '';
     if (!text) return;
     if (isTranslating()) { translateText(text); return; }
-    addUnfinished(text);
+    addPendingDecision(text);
   }
 
   async function start() {
