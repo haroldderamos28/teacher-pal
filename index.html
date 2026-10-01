@@ -4,226 +4,1294 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Teacher Pal – Live Coaching</title>
+
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: #222;
+  }
+
   h1 { font-size: 1.4rem; }
-  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1rem; }
-  label { display: block; font-size: .9rem; color: #555; margin-top: .8rem; }
-  select { width: 100%; padding: .55rem; margin-top: .25rem; box-sizing: border-box; }
-  .check { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .95rem; color: #333; }
-  button { padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
-  #status { margin: .8rem 0; color: #666; }
-  .cols, .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
-  .cols { font-weight: 600; border-bottom: 2px solid #ddd; padding-bottom: .4rem; }
-  .row { padding: .7rem 0; border-bottom: 1px solid #eee; line-height: 1.5; }
-  .fb div { margin-bottom: .25rem; }
-  .fix { color: #b00020; font-weight: 500; }
-  .nat { color: #0a6b3a; font-weight: 500; }
-  .tip { color: #555; }
-  .ask { color: #1a4fa0; }
-  .ok { color: #888; }
-  .trn { color: #0a6b3a; font-weight: 500; }
-  .sug { color: #1a4fa0; }
-  .interim { color: #999; padding: .7rem 0; min-height: 1.4rem; }
-  .err { color: #b00020; }
-  .muted { color: #888; font-style: italic; font-weight: 400; }
-  .miniBtn { padding: .3rem .7rem; font-size: .85rem; margin: 0 .5rem .3rem 0; cursor: pointer; }
-  .ver { color: #aaa; font-size: .75rem; margin-top: 2rem; }
-  @media (max-width: 600px) { .controls, .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .2rem 1rem;
+  }
+
+  label {
+    display: block;
+    font-size: .9rem;
+    color: #555;
+    margin-top: .8rem;
+  }
+
+  select {
+    width: 100%;
+    padding: .55rem;
+    margin-top: .25rem;
+    box-sizing: border-box;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: 1rem;
+    font-size: .95rem;
+    color: #333;
+  }
+
+  button {
+    padding: .6rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    margin-right: .5rem;
+  }
+
+  #status {
+    margin: .8rem 0;
+    color: #666;
+  }
+
+  .cols, .row {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 1rem;
+  }
+
+  .cols {
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: .4rem;
+  }
+
+  .row {
+    padding: .7rem 0;
+    border-bottom: 1px solid #eee;
+    line-height: 1.5;
+  }
+
+  .fb div {
+    margin-bottom: .25rem;
+  }
+
+  .fix {
+    color: #b00020;
+    font-weight: 500;
+  }
+
+  .nat {
+    color: #0a6b3a;
+    font-weight: 500;
+  }
+
+  .tip {
+    color: #555;
+  }
+
+  .ask {
+    color: #1a4fa0;
+  }
+
+  .ok {
+    color: #888;
+  }
+
+  .trn {
+    color: #0a6b3a;
+    font-weight: 500;
+  }
+
+  .sug {
+    color: #1a4fa0;
+  }
+
+  .interim {
+    color: #999;
+    padding: .7rem 0;
+    min-height: 1.4rem;
+  }
+
+  .err {
+    color: #b00020;
+  }
+
+  .muted {
+    color: #888;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .miniBtn {
+    padding: .3rem .7rem;
+    font-size: .85rem;
+    margin: 0 .5rem .3rem 0;
+    cursor: pointer;
+  }
+
+  .ver {
+    color: #aaa;
+    font-size: .75rem;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 600px) {
+    .controls, .cols, .row {
+      grid-template-columns: 1fr;
+      gap: .3rem;
+    }
+  }
 </style>
 </head>
+
 <body>
-  <h1>Live Coaching</h1>
 
-  <div class="controls">
-    <div>
-      <label for="lang">Student is speaking</label>
-      <select id="lang">
-        <option value="en">English (get corrections)</option>
-        <optgroup label="Translate to English">
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="zh">Mandarin Chinese</option>
-          <option value="zh-TW">Mandarin Chinese (Traditional)</option>
-          <option value="zh-HK">Cantonese</option>
-          <option value="vi">Vietnamese</option>
-          <option value="th">Thai</option>
-          <option value="id">Indonesian</option>
-          <option value="ms">Malay</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="ru">Russian</option>
-          <option value="uk">Ukrainian</option>
-          <option value="pl">Polish</option>
-          <option value="tr">Turkish</option>
-          <option value="hi">Hindi</option>
-          <option value="el">Greek</option>
-          <option value="ro">Romanian</option>
-          <option value="hu">Hungarian</option>
-          <option value="cs">Czech</option>
-          <option value="sk">Slovak</option>
-          <option value="bg">Bulgarian</option>
-          <option value="sv">Swedish</option>
-          <option value="da">Danish</option>
-          <option value="no">Norwegian</option>
-          <option value="fi">Finnish</option>
-        </optgroup>
-      </select>
-    </div>
-    <div>
-      <label for="source">Audio source</label>
-      <select id="source">
-        <option value="tab">Tab / system audio (the other person's voice)</option>
-        <option value="mic">My microphone (my voice)</option>
-      </select>
-    </div>
+<h1>Live Coaching</h1>
+
+<div class="controls">
+  <div>
+    <label for="lang">Student is speaking</label>
+
+    <select id="lang">
+      <option value="en">English (get corrections)</option>
+
+      <optgroup label="Translate to English">
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="zh">Mandarin Chinese</option>
+        <option value="zh-TW">Mandarin Chinese (Traditional)</option>
+        <option value="zh-HK">Cantonese</option>
+        <option value="vi">Vietnamese</option>
+        <option value="th">Thai</option>
+        <option value="id">Indonesian</option>
+        <option value="ms">Malay</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="it">Italian</option>
+        <option value="pt">Portuguese</option>
+        <option value="nl">Dutch</option>
+        <option value="ru">Russian</option>
+        <option value="uk">Ukrainian</option>
+        <option value="pl">Polish</option>
+        <option value="tr">Turkish</option>
+        <option value="hi">Hindi</option>
+        <option value="el">Greek</option>
+        <option value="ro">Romanian</option>
+        <option value="hu">Hungarian</option>
+        <option value="cs">Czech</option>
+        <option value="sk">Slovak</option>
+        <option value="bg">Bulgarian</option>
+        <option value="sv">Swedish</option>
+        <option value="da">Danish</option>
+        <option value="no">Norwegian</option>
+        <option value="fi">Finnish</option>
+      </optgroup>
+    </select>
   </div>
 
-  <div class="controls" id="englishControls">
-    <div>
-      <label for="mode">Mode</label>
-      <select id="mode">
-        <option value="natural">Natural</option>
-        <option value="accurate">Accurate (corrections only)</option>
-        <option value="casual">Casual</option>
-        <option value="business">Business</option>
-        <option value="professional">Professional (formal)</option>
-        <option value="concise">Concise</option>
-        <option value="student">Student level (simple words)</option>
-      </select>
-    </div>
-    <div>
-      <label for="level">Difficulty</label>
-      <select id="level">
-        <option value="basic">Basic</option>
-        <option value="intermediate" selected>Intermediate</option>
-        <option value="advanced">Advanced</option>
-      </select>
-    </div>
-    <div>
-      <label for="minWords">Only rephrase sentences with at least this many words</label>
-      <select id="minWords">
-        <option value="1">1 (rephrase everything)</option>
-        <option value="4">4</option>
-        <option value="6" selected>6</option>
-        <option value="8">8</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-    <div>
-      <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
-      <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
-    </div>
+  <div>
+    <label for="source">Audio source</label>
+
+    <select id="source">
+      <option value="tab">Tab / system audio (the other person's voice)</option>
+      <option value="mic">My microphone (my voice)</option>
+    </select>
+  </div>
+</div>
+
+<div class="controls" id="englishControls">
+
+  <div>
+    <label for="mode">Mode</label>
+
+    <select id="mode">
+      <option value="natural">Natural</option>
+      <option value="accurate">Accurate (corrections only)</option>
+      <option value="casual">Casual</option>
+      <option value="business">Business</option>
+      <option value="professional">Professional (formal)</option>
+      <option value="concise">Concise</option>
+      <option value="student">Student level (simple words)</option>
+    </select>
   </div>
 
-  <div class="controls" id="translateControls" style="display:none">
-    <div>
-      <label for="translateLevel">Student's level</label>
-      <select id="translateLevel">
-        <option value="basic">Basic</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="advanced">Advanced</option>
-      </select>
-    </div>
+  <div>
+    <label for="level">Difficulty</label>
+
+    <select id="level">
+      <option value="basic">Basic</option>
+      <option value="intermediate" selected>Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
   </div>
 
-  <button id="toggle">Start Listening</button>
-  <button id="pauseBtn" style="display:none">Pause</button>
-  <div id="status">Not connected.</div>
-  <div id="interim" class="interim"></div>
+  <div>
+    <label for="minWords">
+      Only rephrase sentences with at least this many words
+    </label>
 
-  <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
-  <div id="rows"></div>
-  <div class="ver">version 27</div>
+    <select id="minWords">
+      <option value="1">1 (rephrase everything)</option>
+      <option value="4">4</option>
+      <option value="6" selected>6</option>
+      <option value="8">8</option>
+      <option value="10">10</option>
+    </select>
+  </div>
+
+  <div>
+    <label class="check">
+      <input type="checkbox" id="extras">
+      Show extras (other ways to say it, vocabulary)
+    </label>
+
+    <label class="check">
+      <input type="checkbox" id="hideShort">
+      Hide short replies instead of showing a checkmark
+    </label>
+  </div>
+</div>
+
+<div class="controls" id="translateControls" style="display:none">
+
+  <div>
+    <label for="translateLevel">Student's level</label>
+
+    <select id="translateLevel">
+      <option value="basic">Basic</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+  </div>
+
+</div>
+
+<button id="toggle">Start Listening</button>
+<button id="pauseBtn" style="display:none">Pause</button>
+
+<div id="status">Not connected.</div>
+<div id="interim" class="interim"></div>
+
+<div class="cols">
+  <div id="colLeft">Student said</div>
+  <div id="colRight">Feedback</div>
+</div>
+
+<div id="rows"></div>
+
+<div class="ver">version 28 – OpenAI</div>
 
 <script>
-  const WORKER = 'https://workers.dev';
 
-  // Executing inside the safe DOM lifecycle listener prevents structural crashes
-  document.addEventListener('DOMContentLoaded', () => {
-    const $ = (id) => document.getElementById(id);
-    
-    const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
-    const translateLevelEl = $('translateLevel'), minWordsEl = $('minWords'), hideShortEl = $('hideShort'), sourceEl = $('source');
-    const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
-    const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
+const WORKER =
+  'https://blue-base-6bdc.haroldderamos28.workers.dev';
 
-    function isTranslating() { return langEl.value !== 'en'; }
+document.addEventListener('DOMContentLoaded', () => {
 
-    function updateControlVisibility() {
-      const t = isTranslating();
-      englishControlsEl.style.display = t ? 'none' : '';
-      translateControlsEl.style.display = t ? '' : 'none';
-      $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
-      $('colRight').textContent = t ? 'English translation' : 'Feedback';
-    }
-    langEl.addEventListener('change', updateControlVisibility);
+  const $ = (id) => document.getElementById(id);
 
-    let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, keepAliveTimer = null;
+  const langEl = $('lang');
+  const modeEl = $('mode');
+  const levelEl = $('level');
+  const extrasEl = $('extras');
 
-    function startKeepAlive() {
-      clearInterval(keepAliveTimer);
-      keepAliveTimer = setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'KeepAlive' }));
-        }
-      }, 5000);
-    }
-    function stopKeepAlive() { clearInterval(keepAliveTimer); }
+  const translateLevelEl = $('translateLevel');
+  const minWordsEl = $('minWords');
+  const hideShortEl = $('hideShort');
+  const sourceEl = $('source');
+
+  const englishControlsEl = $('englishControls');
+  const translateControlsEl = $('translateControls');
+
+  const toggleBtn = $('toggle');
+  const pauseBtn = $('pauseBtn');
+  const statusEl = $('status');
+  const rowsEl = $('rows');
+  const interimEl = $('interim');
+
+  let socket = null;
+  let recorder = null;
+  let stream = null;
+  let displayStream = null;
+
+  let running = false;
+  let paused = false;
+  let stopping = false;
+  let keepAliveTimer = null;
+
+  function isTranslating() {
+    return langEl.value !== 'en';
+  }
+
+  function updateControlVisibility() {
+
+    const translating = isTranslating();
+
+    englishControlsEl.style.display =
+      translating ? 'none' : '';
+
+    translateControlsEl.style.display =
+      translating ? '' : 'none';
+
+    $('colLeft').textContent =
+      translating
+        ? 'Student said (their language)'
+        : 'Student said';
+
+    $('colRight').textContent =
+      translating
+        ? 'English translation'
+        : 'Feedback';
+  }
+
+  langEl.addEventListener(
+    'change',
+    updateControlVisibility
+  );
+
+  updateControlVisibility();
+
+  /* -----------------------------
+     Saved settings
+  ----------------------------- */
+
+  try {
+
+    modeEl.value =
+      localStorage.getItem('tp_mode') ||
+      'natural';
+
+    levelEl.value =
+      localStorage.getItem('tp_level') ||
+      'intermediate';
+
+    extrasEl.checked =
+      localStorage.getItem('tp_extras') === '1';
+
+  } catch (e) {}
+
+  modeEl.addEventListener('change', () => {
 
     try {
-      modeEl.value = localStorage.getItem('tp_mode') || 'natural';
-      levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
-      extrasEl.checked = localStorage.getItem('tp_extras') === '1';
+      localStorage.setItem(
+        'tp_mode',
+        modeEl.value
+      );
     } catch (e) {}
-    modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
-    levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
-    extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
 
-    toggleBtn.addEventListener('click', async () => {
+  });
+
+  levelEl.addEventListener('change', () => {
+
+    try {
+      localStorage.setItem(
+        'tp_level',
+        levelEl.value
+      );
+    } catch (e) {}
+
+  });
+
+  extrasEl.addEventListener('change', () => {
+
+    try {
+      localStorage.setItem(
+        'tp_extras',
+        extrasEl.checked ? '1' : '0'
+      );
+    } catch (e) {}
+
+  });
+
+  /* -----------------------------
+     Deepgram keep alive
+  ----------------------------- */
+
+  function startKeepAlive() {
+
+    clearInterval(keepAliveTimer);
+
+    keepAliveTimer = setInterval(() => {
+
+      if (
+        socket &&
+        socket.readyState === WebSocket.OPEN
+      ) {
+
+        try {
+          socket.send(
+            JSON.stringify({
+              type: 'KeepAlive'
+            })
+          );
+        } catch (e) {}
+
+      }
+
+    }, 5000);
+  }
+
+  function stopKeepAlive() {
+
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+
+  /* -----------------------------
+     Word count
+  ----------------------------- */
+
+  function wordCount(text) {
+
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .length;
+  }
+
+  /* -----------------------------
+     Display feedback
+  ----------------------------- */
+
+  function addRow(sentence, data, translating) {
+
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    const left = document.createElement('div');
+    left.textContent = sentence;
+
+    const right = document.createElement('div');
+    right.className = 'fb';
+
+    if (translating) {
+
+      const translation = document.createElement('div');
+      translation.className = 'trn';
+      translation.textContent =
+        'English: ' +
+        (data.translation || '');
+
+      right.appendChild(translation);
+
+      if (data.suggestion) {
+
+        const suggestion =
+          document.createElement('div');
+
+        suggestion.className = 'sug';
+
+        suggestion.textContent =
+          'Suggestion: ' +
+          data.suggestion;
+
+        right.appendChild(suggestion);
+      }
+
+    } else {
+
+      if (data.correction) {
+
+        const correction =
+          document.createElement('div');
+
+        correction.className = 'fix';
+
+        correction.textContent =
+          'Correction: ' +
+          data.correction;
+
+        right.appendChild(correction);
+      }
+
+      if (data.explanation) {
+
+        const explanation =
+          document.createElement('div');
+
+        explanation.className = 'tip';
+
+        explanation.textContent =
+          'Explanation: ' +
+          data.explanation;
+
+        right.appendChild(explanation);
+      }
+
+      if (data.natural) {
+
+        const natural =
+          document.createElement('div');
+
+        natural.className = 'nat';
+
+        natural.textContent =
+          'Natural: ' +
+          data.natural;
+
+        right.appendChild(natural);
+      }
+
+      if (data.followup) {
+
+        const followup =
+          document.createElement('div');
+
+        followup.className = 'ask';
+
+        followup.textContent =
+          'Follow-up: ' +
+          data.followup;
+
+        right.appendChild(followup);
+      }
+
+      if (
+        Array.isArray(data.alternatives) &&
+        data.alternatives.length
+      ) {
+
+        const alternatives =
+          document.createElement('div');
+
+        alternatives.className = 'tip';
+
+        alternatives.textContent =
+          'Other ways: ' +
+          data.alternatives.join(' / ');
+
+        right.appendChild(alternatives);
+      }
+
+      if (data.vocabulary) {
+
+        const vocabulary =
+          document.createElement('div');
+
+        vocabulary.className = 'tip';
+
+        vocabulary.textContent =
+          'Vocabulary: ' +
+          data.vocabulary;
+
+        right.appendChild(vocabulary);
+      }
+    }
+
+    row.appendChild(left);
+    row.appendChild(right);
+
+    rowsEl.prepend(row);
+  }
+
+  /* -----------------------------
+     Ask Cloudflare/OpenAI
+  ----------------------------- */
+
+  async function analyzeSentence(text) {
+
+    const translating = isTranslating();
+
+    const body = {
+      text: text,
+      translate: translating,
+      lang: langEl.value
+    };
+
+    if (translating) {
+
+      body.level =
+        translateLevelEl.value;
+
+    } else {
+
+      body.mode =
+        modeEl.value;
+
+      body.level =
+        levelEl.value;
+
+      body.extras =
+        extrasEl.checked;
+    }
+
+    const response = await fetch(
+      `${WORKER}/`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify(body)
+      }
+    );
+
+    let data;
+
+    try {
+      data = await response.json();
+    } catch (e) {
+      throw new Error(
+        `Server returned HTTP ${response.status}`
+      );
+    }
+
+    if (!response.ok || data.error) {
+
+      throw new Error(
+        data.error ||
+        `Server returned HTTP ${response.status}`
+      );
+    }
+
+    return data;
+  }
+
+  /* -----------------------------
+     Process final Deepgram result
+  ----------------------------- */
+
+  async function processTranscript(text) {
+
+    text = String(text || '').trim();
+
+    if (!text) return;
+
+    const translating = isTranslating();
+
+    const minimum =
+      parseInt(minWordsEl.value, 10) || 1;
+
+    const count = wordCount(text);
+
+    interimEl.textContent = '';
+
+    /*
+      For translation mode, don't apply the
+      English minimum-word filter.
+    */
+
+    if (!translating && count < minimum) {
+
+      if (!hideShortEl.checked) {
+
+        const row =
+          document.createElement('div');
+
+        row.className = 'row';
+
+        const left =
+          document.createElement('div');
+
+        left.textContent = text;
+
+        const right =
+          document.createElement('div');
+
+        right.className = 'ok';
+
+        right.textContent =
+          '✓ Short reply';
+
+        row.appendChild(left);
+        row.appendChild(right);
+
+        rowsEl.prepend(row);
+      }
+
+      return;
+    }
+
+    try {
+
+      statusEl.textContent =
+        'Analyzing: ' + text;
+
+      const data =
+        await analyzeSentence(text);
+
+      addRow(
+        text,
+        data,
+        translating
+      );
+
       if (running) {
+
+        statusEl.textContent =
+          paused
+            ? 'Paused.'
+            : 'Listening...';
+      }
+
+    } catch (error) {
+
+      console.error(
+        'Analysis error:',
+        error
+      );
+
+      const row =
+        document.createElement('div');
+
+      row.className = 'row';
+
+      const left =
+        document.createElement('div');
+
+      left.textContent = text;
+
+      const right =
+        document.createElement('div');
+
+      right.className = 'err';
+
+      right.textContent =
+        'Error: ' + error.message;
+
+      row.appendChild(left);
+      row.appendChild(right);
+
+      rowsEl.prepend(row);
+
+      if (running) {
+        statusEl.textContent =
+          'Listening — AI error.';
+      }
+    }
+  }
+
+  /* -----------------------------
+     Stop everything
+  ----------------------------- */
+
+  function stopListening() {
+
+    stopping = true;
+    running = false;
+    paused = false;
+
+    stopKeepAlive();
+
+    if (recorder) {
+
+      try {
+
+        if (
+          recorder.state !== 'inactive'
+        ) {
+          recorder.stop();
+        }
+
+      } catch (e) {}
+
+      recorder = null;
+    }
+
+    if (stream) {
+
+      stream.getTracks().forEach(
+        track => {
+          try {
+            track.stop();
+          } catch (e) {}
+        }
+      );
+
+      stream = null;
+    }
+
+    if (displayStream) {
+
+      displayStream.getTracks().forEach(
+        track => {
+          try {
+            track.stop();
+          } catch (e) {}
+        }
+      );
+
+      displayStream = null;
+    }
+
+    if (socket) {
+
+      try {
+
+        if (
+          socket.readyState ===
+          WebSocket.OPEN
+        ) {
+          socket.send(
+            JSON.stringify({
+              type: 'CloseStream'
+            })
+          );
+        }
+
+      } catch (e) {}
+
+      try {
+        socket.close();
+      } catch (e) {}
+
+      socket = null;
+    }
+
+    interimEl.textContent = '';
+
+    toggleBtn.textContent =
+      'Start Listening';
+
+    pauseBtn.style.display =
+      'none';
+
+    pauseBtn.textContent =
+      'Pause';
+
+    statusEl.textContent =
+      'Not connected.';
+
+    stopping = false;
+  }
+
+  /* -----------------------------
+     Pause / Resume
+  ----------------------------- */
+
+  pauseBtn.addEventListener(
+    'click',
+    () => {
+
+      if (!running) return;
+
+      paused = !paused;
+
+      if (paused) {
+
+        pauseBtn.textContent =
+          'Resume';
+
+        statusEl.textContent =
+          'Paused.';
+
+      } else {
+
+        pauseBtn.textContent =
+          'Pause';
+
+        statusEl.textContent =
+          'Listening...';
+      }
+
+    }
+  );
+
+  /* -----------------------------
+     Start listening
+  ----------------------------- */
+
+  toggleBtn.addEventListener(
+    'click',
+    async () => {
+
+      if (running) {
+
         stopListening();
         return;
       }
 
-      statusEl.textContent = 'Obtaining access token...';
       try {
-        const tokenRes = await fetch(`${WORKER}/token`, { method: 'POST' });
-        const tokenData = await tokenRes.json();
-        if (tokenData.error) throw new Error(tokenData.error);
 
-        statusEl.textContent = 'Connecting to voice engine...';
-        const targetLang = langEl.value;
+        statusEl.textContent =
+          'Obtaining access token...';
 
-        socket = new WebSocket(`wss://://deepgram.com{targetLang}&smart_formatting=true&interim_results=true&utterance_end_ms=1000`, [
-          'token',
-          tokenData.token,
-        ]);
-
-        socket.onopen = async () => {
-          statusEl.textContent = 'Voice engine active. Accessing microphone...';
-          startKeepAlive();
-
-          try {
-            const audioSource = sourceEl.value;
-            if (audioSource === 'mic') {
-              stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            } else {
-              displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-              const audioTracks = displayStream.getAudioTracks();
-              if (audioTracks.length === 0) throw new Error("No system audio selected.");
-              stream = new MediaStream(audioTracks);
+        const tokenRes =
+          await fetch(
+            `${WORKER}/token`,
+            {
+              method: 'POST'
             }
+          );
 
-            recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            recorder.ondataavailable = (e) => {
-              if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN && !paused) {
-                socket.send(e.data);
+        let tokenData;
+
+        try {
+          tokenData =
+            await tokenRes.json();
+        } catch (e) {
+          throw new Error(
+            `Token server returned HTTP ${tokenRes.status}`
+          );
+        }
+
+        if (
+          !tokenRes.ok ||
+          tokenData.error
+        ) {
+          throw new Error(
+            tokenData.error ||
+            'Could not obtain Deepgram token.'
+          );
+        }
+
+        if (!tokenData.token) {
+
+          throw new Error(
+            'Deepgram token was empty.'
+          );
+        }
+
+        statusEl.textContent =
+          'Connecting to voice engine...';
+
+        const targetLang =
+          langEl.value;
+
+        /*
+          Correct Deepgram WebSocket URL.
+        */
+
+        const deepgramUrl =
+          'wss://api.deepgram.com/v1/listen' +
+          '?model=nova-3' +
+          `&language=${encodeURIComponent(targetLang)}` +
+          '&smart_format=true' +
+          '&interim_results=true' +
+          '&utterance_end_ms=1000';
+
+        socket =
+          new WebSocket(
+            deepgramUrl,
+            [
+              'token',
+              tokenData.token
+            ]
+          );
+
+        socket.onopen =
+          async () => {
+
+            running = true;
+            stopping = false;
+
+            toggleBtn.textContent =
+              'Stop Listening';
+
+            pauseBtn.style.display =
+              'inline-block';
+
+            statusEl.textContent =
+              'Voice engine active. Accessing audio...';
+
+            startKeepAlive();
+
+            try {
+
+              const audioSource =
+                sourceEl.value;
+
+              if (
+                audioSource === 'mic'
+              ) {
+
+                stream =
+                  await navigator
+                    .mediaDevices
+                    .getUserMedia({
+                      audio: true
+                    });
+
+              } else {
+
+                displayStream =
+                  await navigator
+                    .mediaDevices
+                    .getDisplayMedia({
+                      video: true,
+                      audio: true
+                    });
+
+                const audioTracks =
+                  displayStream
+                    .getAudioTracks();
+
+                if (
+                  audioTracks.length === 0
+                ) {
+
+                  throw new Error(
+                    'No system audio was selected. Make sure "Share audio" is enabled.'
+                  );
+                }
+
+                stream =
+                  new MediaStream(
+                    audioTracks
+                  );
               }
-            };
-            recorder.start(250);
 
+              /*
+                Some browsers don't expose
+                audio/webm directly.
+              */
+
+              let mimeType =
+                'audio/webm';
+
+              if (
+                !MediaRecorder
+                  .isTypeSupported(
+                    mimeType
+                  )
+              ) {
+
+                mimeType =
+                  'audio/webm;codecs=opus';
+              }
+
+              if (
+                !MediaRecorder
+                  .isTypeSupported(
+                    mimeType
+                  )
+              ) {
+
+                throw new Error(
+                  'This browser does not support WebM audio recording.'
+                );
+              }
+
+              recorder =
+                new MediaRecorder(
+                  stream,
+                  {
+                    mimeType
+                  }
+                );
+
+              recorder.ondataavailable =
+                (event) => {
+
+                  if (
+                    event.data.size > 0 &&
+                    socket &&
+                    socket.readyState ===
+                      WebSocket.OPEN &&
+                    !paused
+                  ) {
+
+                    try {
+                      socket.send(
+                        event.data
+                      );
+                    } catch (e) {
+
+                      console.error(
+                        'Audio send error:',
+                        e
+                      );
+                    }
+                  }
+                };
+
+              recorder.onerror =
+                (event) => {
+
+                  console.error(
+                    'Recorder error:',
+                    event
+                  );
+
+                  statusEl.textContent =
+                    'Audio recorder error.';
+                };
+
+              recorder.start(250);
+
+              statusEl.textContent =
+                'Listening...';
+
+            } catch (error) {
+
+              console.error(
+                'Audio error:',
+                error
+              );
+
+              statusEl.textContent =
+                error.message;
+
+              stopListening();
+            }
+          };
+
+        socket.onmessage =
+          async (event) => {
+
+            try {
+
+              const data =
+                JSON.parse(
+                  event.data
+                );
+
+              /*
+                Deepgram interim transcript.
+              */
+
+              if (
+                data.type === 'Results'
+              ) {
+
+                const transcript =
+                  data.channel
+                    ?.alternatives
+                    ?. [0]
+                    ?.transcript || '';
+
+                if (
+                  transcript &&
+                  !data.is_final
+                ) {
+
+                  interimEl.textContent =
+                    transcript;
+                }
+
+                /*
+                  Only process speech-final
+                  transcripts so we don't send
+                  the same sentence repeatedly
+                  to OpenAI.
+                */
+
+                if (
+                  data.is_final &&
+                  (
+                    data.speech_final ||
+                    data.from_finalize
+                  )
+                ) {
+
+                  await processTranscript(
+                    transcript
+                  );
+                }
+              }
+
+            } catch (error) {
+
+              console.error(
+                'Deepgram message error:',
+                error
+              );
+            }
+          };
+
+        socket.onerror =
+          (error) => {
+
+            console.error(
+              'Deepgram WebSocket error:',
+              error
+            );
+
+            statusEl.textContent =
+              'Voice engine connection error.';
+          };
+
+        socket.onclose =
+          (event) => {
+
+            console.log(
+              'Deepgram closed:',
+              event.code,
+              event.reason
+            );
+
+            if (!stopping) {
+
+              running = false;
+
+              stopKeepAlive();
+
+              if (recorder) {
+
+                try {
+                  recorder.stop();
+                } catch (e) {}
+
+                recorder = null;
+              }
+
+              if (stream) {
+
+                stream
+                  .getTracks()
+                  .forEach(
+                    track => {
+                      try {
+                        track.stop();
+                      } catch (e) {}
+                    }
+                  );
+
+                stream = null;
+              }
+
+              toggleBtn.textContent =
+                'Start Listening';
+
+              pauseBtn.style.display =
+                'none';
+
+              statusEl.textContent =
+                'Voice engine disconnected.';
+            }
+          };
+
+      } catch (error) {
+
+        console.error(
+          'Start error:',
+          error
+        );
+
+        stopListening();
+
+        statusEl.textContent =
+          'Error: ' +
+          error.message;
+      }
+    }
+  );
+
+  /*
+    If the user stops sharing system audio
+    from the browser's sharing controls,
+    stop the application too.
+  */
+
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      /* Intentionally empty.
+         Listening continues in the tab. */
+    }
+  );
+
+});
+</script>
+
+</body>
+</html>
