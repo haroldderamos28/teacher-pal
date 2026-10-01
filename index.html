@@ -1,1832 +1,393 @@
-```html
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Pal</title>
-
-
   <style>
-
-    * {
-      box-sizing: border-box;
-    }
-
-
-    body {
-
-      margin: 0;
-
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-      background:
-        #f5f7fb;
-
-      color:
-        #1f2937;
-    }
-
-
-    .container {
-
-      max-width:
-        1250px;
-
-      margin:
-        0 auto;
-
-      padding:
-        20px;
-    }
-
-
-    h1 {
-
-      margin:
-        0 0 18px;
-
-      font-size:
-        28px;
-    }
-
-
-    .controls {
-
-      background:
-        white;
-
-      padding:
-        16px;
-
-      border-radius:
-        12px;
-
-      margin-bottom:
-        16px;
-
-      box-shadow:
-        0 2px 8px
-        rgba(0,0,0,0.06);
-    }
-
-
-    .control-row {
-
-      display:
-        flex;
-
-      flex-wrap:
-        wrap;
-
-      gap:
-        10px;
-
-      align-items:
-        center;
-    }
-
-
-    select {
-
-      padding:
-        9px 10px;
-
-      border:
-        1px solid #d1d5db;
-
-      border-radius:
-        8px;
-
-      background:
-        white;
-    }
-
-
-    button {
-
-      border:
-        0;
-
-      border-radius:
-        8px;
-
-      padding:
-        10px 16px;
-
-      cursor:
-        pointer;
-
-      font-weight:
-        bold;
-    }
-
-
-    #startBtn {
-
-      background:
-        #111827;
-
-      color:
-        white;
-    }
-
-
-    #stopBtn {
-
-      background:
-        #dc2626;
-
-      color:
-        white;
-    }
-
-
-    button:disabled {
-
-      opacity:
-        0.5;
-
-      cursor:
-        not-allowed;
-    }
-
-
-    .status {
-
-      margin-top:
-        10px;
-
-      font-size:
-        14px;
-
-      color:
-        #6b7280;
-    }
-
-
-    .coach-grid {
-
-      display:
-        grid;
-
-      grid-template-columns:
-        1fr 1fr;
-
-      gap:
-        16px;
-    }
-
-
-    .panel {
-
-      background:
-        white;
-
-      border-radius:
-        12px;
-
-      overflow:
-        hidden;
-
-      box-shadow:
-        0 2px 8px
-        rgba(0,0,0,0.06);
-
-      min-height:
-        500px;
-    }
-
-
-    .panel-header {
-
-      padding:
-        14px 16px;
-
-      font-weight:
-        bold;
-
-      border-bottom:
-        1px solid #e5e7eb;
-
-      background:
-        #fafafa;
-    }
-
-
-    .panel-body {
-
-      padding:
-        16px;
-    }
-
-
-    #liveTranscript {
-
-      font-size:
-        22px;
-
-      line-height:
-        1.6;
-
-      min-height:
-        100px;
-    }
-
-
-    .final-line {
-
-      margin-bottom:
-        10px;
-    }
-
-
-    .interim {
-
-      color:
-        #9ca3af;
-    }
-
-
-    .correction-card {
-
-      border:
-        1px solid #e5e7eb;
-
-      border-radius:
-        10px;
-
-      padding:
-        14px;
-
-      margin-bottom:
-        12px;
-    }
-
-
-    .correction-label {
-
-      font-size:
-        12px;
-
-      font-weight:
-        bold;
-
-      color:
-        #6b7280;
-
-      text-transform:
-        uppercase;
-
-      margin-bottom:
-        5px;
-    }
-
-
-    .corrected {
-
-      font-size:
-        20px;
-
-      font-weight:
-        bold;
-
-      line-height:
-        1.4;
-    }
-
-
-    .natural {
-
-      font-size:
-        17px;
-
-      line-height:
-        1.4;
-
-      margin-top:
-        8px;
-    }
-
-
-    .why {
-
-      font-size:
-        14px;
-
-      color:
-        #6b7280;
-
-      margin-top:
-        10px;
-
-      line-height:
-        1.4;
-    }
-
-
-    .thinking {
-
-      color:
-        #9ca3af;
-
-      font-style:
-        italic;
-    }
-
-
-    .error {
-
-      color:
-        #dc2626;
-
-      background:
-        #fef2f2;
-
-      padding:
-        10px;
-
-      border-radius:
-        8px;
-
-      margin-bottom:
-        10px;
-
-      font-size:
-        14px;
-
-      white-space:
-        pre-wrap;
-    }
-
-
-    .empty {
-
-      color:
-        #9ca3af;
-
-      font-size:
-        15px;
-    }
-
-
-    @media (
-      max-width: 800px
-    ) {
-
-      .coach-grid {
-
-        grid-template-columns:
-          1fr;
-      }
-
-    }
-
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f5f7fb; color: #1f2937; }
+    .container { max-width: 1250px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 18px; font-size: 28px; }
+    .controls { background: white; padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .control-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    select { padding: 9px 10px; border: 1px solid #d1d5db; border-radius: 8px; background: white; }
+    label.check { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    button { border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; font-weight: bold; }
+    #startBtn { background: #111827; color: white; }
+    #stopBtn { background: #dc2626; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 10px; font-size: 14px; color: #6b7280; }
+    .coach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-height: 500px; }
+    .panel-header { padding: 14px 16px; font-weight: bold; border-bottom: 1px solid #e5e7eb; background: #fafafa; }
+    .panel-body { padding: 16px; }
+    #liveTranscript { font-size: 22px; line-height: 1.6; min-height: 100px; }
+    .final-line { margin-bottom: 10px; }
+    .interim { color: #9ca3af; }
+    .correction-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+    .correction-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; margin-bottom: 5px; }
+    .corrected { font-size: 20px; font-weight: bold; line-height: 1.4; }
+    .natural { font-size: 17px; line-height: 1.4; margin-top: 8px; }
+    .why { font-size: 14px; color: #6b7280; margin-top: 10px; line-height: 1.4; }
+    .alt { font-size: 14px; color: #1a4fa0; margin-top: 10px; line-height: 1.4; }
+    .vocab { font-size: 14px; color: #0a6b3a; margin-top: 10px; line-height: 1.4; }
+    .thinking { color: #9ca3af; font-style: italic; }
+    .error { color: #dc2626; background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; white-space: pre-wrap; }
+    .empty { color: #9ca3af; font-size: 15px; }
+    @media (max-width: 800px) { .coach-grid { grid-template-columns: 1fr; } }
   </style>
-
 </head>
-
-
 <body>
-
-
   <div class="container">
-
-
-    <h1>
-      Teacher Pal
-    </h1>
-
-
-    <!-- =================================
-         CONTROLS
-    ================================== -->
+    <h1>Teacher Pal</h1>
 
     <div class="controls">
-
       <div class="control-row">
-
-
-        <label>
-
-          Mode:
-
+        <label>Mode:
           <select id="mode">
-
-            <option value="accurate">
-              Accurate
-            </option>
-
-            <option
-              value="natural"
-              selected
-            >
-              Natural
-            </option>
-
-            <option value="casual">
-              Casual
-            </option>
-
-            <option value="business">
-              Business
-            </option>
-
-            <option value="professional">
-              Professional
-            </option>
-
-            <option value="concise">
-              Concise
-            </option>
-
-            <option value="student">
-              Student-friendly
-            </option>
-
+            <option value="accurate">Accurate</option>
+            <option value="natural" selected>Natural</option>
+            <option value="casual">Casual</option>
+            <option value="business">Business</option>
+            <option value="professional">Professional</option>
+            <option value="concise">Concise</option>
+            <option value="student">Student-friendly</option>
           </select>
-
         </label>
-
-
-        <label>
-
-          Level:
-
+        <label>Level:
           <select id="level">
-
-            <option value="basic">
-              Basic
-            </option>
-
-            <option
-              value="intermediate"
-              selected
-            >
-              Intermediate
-            </option>
-
-            <option value="advanced">
-              Advanced
-            </option>
-
+            <option value="basic">Basic</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
           </select>
-
         </label>
-
-
-        <label>
-
-          Support language:
-
+        <label>Support language:
           <select id="language">
-
-            <option
-              value="en"
-              selected
-            >
-              English
-            </option>
-
-            <option value="ja">
-              Japanese
-            </option>
-
-            <option value="ko">
-              Korean
-            </option>
-
-            <option value="zh">
-              Chinese
-            </option>
-
-            <option value="zh-TW">
-              Traditional Chinese
-            </option>
-
-            <option value="vi">
-              Vietnamese
-            </option>
-
-            <option value="th">
-              Thai
-            </option>
-
-            <option value="id">
-              Indonesian
-            </option>
-
-            <option value="ms">
-              Malay
-            </option>
-
-            <option value="es">
-              Spanish
-            </option>
-
-            <option value="fr">
-              French
-            </option>
-
-            <option value="de">
-              German
-            </option>
-
-            <option value="it">
-              Italian
-            </option>
-
-            <option value="pt">
-              Portuguese
-            </option>
-
-            <option value="nl">
-              Dutch
-            </option>
-
-            <option value="ru">
-              Russian
-            </option>
-
-            <option value="uk">
-              Ukrainian
-            </option>
-
-            <option value="pl">
-              Polish
-            </option>
-
-            <option value="tr">
-              Turkish
-            </option>
-
-            <option value="hi">
-              Hindi
-            </option>
-
-            <option value="el">
-              Greek
-            </option>
-
-            <option value="ro">
-              Romanian
-            </option>
-
-            <option value="hu">
-              Hungarian
-            </option>
-
-            <option value="cs">
-              Czech
-            </option>
-
-            <option value="sk">
-              Slovak
-            </option>
-
-            <option value="bg">
-              Bulgarian
-            </option>
-
-            <option value="sv">
-              Swedish
-            </option>
-
-            <option value="da">
-              Danish
-            </option>
-
-            <option value="no">
-              Norwegian
-            </option>
-
-            <option value="fi">
-              Finnish
-            </option>
-
-            <option value="et">
-              Estonian
-            </option>
-
-            <option value="lv">
-              Latvian
-            </option>
-
-            <option value="lt">
-              Lithuanian
-            </option>
-
-            <option value="ca">
-              Catalan
-            </option>
-
+            <option value="en" selected>English</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+            <option value="zh-TW">Traditional Chinese</option>
+            <option value="vi">Vietnamese</option>
+            <option value="th">Thai</option>
+            <option value="id">Indonesian</option>
+            <option value="ms">Malay</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="nl">Dutch</option>
+            <option value="ru">Russian</option>
+            <option value="uk">Ukrainian</option>
+            <option value="pl">Polish</option>
+            <option value="tr">Turkish</option>
+            <option value="hi">Hindi</option>
+            <option value="el">Greek</option>
+            <option value="ro">Romanian</option>
+            <option value="hu">Hungarian</option>
+            <option value="cs">Czech</option>
+            <option value="sk">Slovak</option>
+            <option value="bg">Bulgarian</option>
+            <option value="sv">Swedish</option>
+            <option value="da">Danish</option>
+            <option value="no">Norwegian</option>
+            <option value="fi">Finnish</option>
+            <option value="et">Estonian</option>
+            <option value="lv">Latvian</option>
+            <option value="lt">Lithuanian</option>
+            <option value="ca">Catalan</option>
           </select>
-
         </label>
-
-
-        <button id="startBtn">
-          Start Listening
-        </button>
-
-
-        <button
-          id="stopBtn"
-          disabled
-        >
-          Stop
-        </button>
-
-
+        <label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives &amp; vocabulary)</label>
+        <button id="startBtn">Start Listening</button>
+        <button id="stopBtn" disabled>Stop</button>
       </div>
-
-
-      <div
-        class="status"
-        id="status"
-      >
-        Ready.
-      </div>
-
+      <div class="status" id="status">Ready.</div>
     </div>
-
-
-    <!-- =================================
-         SIDE-BY-SIDE COACH
-    ================================== -->
 
     <div class="coach-grid">
-
-
-      <!-- LIVE STREAM -->
-
       <div class="panel">
-
-        <div class="panel-header">
-          Live Stream
-        </div>
-
+        <div class="panel-header">Live Stream</div>
         <div class="panel-body">
-
-          <div id="liveTranscript">
-
-            <div class="empty">
-              Start listening and speak normally.
-            </div>
-
-          </div>
-
+          <div id="liveTranscript"><div class="empty">Start listening and speak normally.</div></div>
         </div>
-
       </div>
-
-
-      <!-- CORRECTIONS -->
-
       <div class="panel">
-
-        <div class="panel-header">
-          Corrections
-        </div>
-
-        <div
-          class="panel-body"
-          id="results"
-        >
-
-          <div class="empty">
-            Corrections will appear here.
-          </div>
-
-        </div>
-
+        <div class="panel-header">Corrections</div>
+        <div class="panel-body" id="results"><div class="empty">Corrections will appear here.</div></div>
       </div>
-
-
     </div>
-
-
   </div>
 
-
 <script>
-
-
-/* =====================================
-   CONFIGURATION
-===================================== */
-
-const WORKER =
-  "https://blue-base-6bdc.haroldderamos28.workers.dev";
-
-
-/*
- * IMPORTANT:
- *
- * The student is learning English.
- *
- * Therefore Deepgram ALWAYS listens
- * for English.
- */
-
-const DEEPGRAM_LANGUAGE =
-  "en-US";
-
-
-/* =====================================
-   STATE
-===================================== */
+const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
+const DEEPGRAM_LANGUAGE = "en-US";
 
 let socket = null;
-
 let recorder = null;
-
 let stream = null;
-
 let running = false;
-
 let finalTranscript = "";
 
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const statusEl = document.getElementById("status");
+const liveTranscript = document.getElementById("liveTranscript");
+const results = document.getElementById("results");
+const modeEl = document.getElementById("mode");
+const levelEl = document.getElementById("level");
+const languageEl = document.getElementById("language");
+const extrasEl = document.getElementById("extras");
 
-/* =====================================
-   ELEMENTS
-===================================== */
+function setStatus(message) { statusEl.textContent = message; }
 
-const startBtn =
-  document.getElementById(
-    "startBtn"
-  );
-
-const stopBtn =
-  document.getElementById(
-    "stopBtn"
-  );
-
-const statusEl =
-  document.getElementById(
-    "status"
-  );
-
-const liveTranscript =
-  document.getElementById(
-    "liveTranscript"
-  );
-
-const results =
-  document.getElementById(
-    "results"
-  );
-
-const modeEl =
-  document.getElementById(
-    "mode"
-  );
-
-const levelEl =
-  document.getElementById(
-    "level"
-  );
-
-const languageEl =
-  document.getElementById(
-    "language"
-  );
-
-
-/* =====================================
-   STATUS
-===================================== */
-
-function setStatus(
-  message
-) {
-
-  statusEl.textContent =
-    message;
-}
-
-
-/* =====================================
-   START LISTENING
-===================================== */
-
-startBtn.addEventListener(
-  "click",
-  startListening
-);
-
+startBtn.addEventListener("click", startListening);
 
 async function startListening() {
-
-  if (running) {
-    return;
-  }
-
-
+  if (running) return;
   try {
+    setStatus("Requesting microphone...");
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    setStatus(
-      "Requesting microphone..."
-    );
-
-
-    stream =
-      await navigator
-        .mediaDevices
-        .getUserMedia({
-          audio: true
-        });
-
-
-    setStatus(
-      "Connecting to Deepgram..."
-    );
-
-
-    const tokenResponse =
-      await fetch(
-        `${WORKER}/token`,
-        {
-          method: "POST"
-        }
-      );
-
-
+    setStatus("Connecting to Deepgram...");
+    const tokenResponse = await fetch(`${WORKER}/token`, { method: "POST" });
     if (!tokenResponse.ok) {
-
-      const errorText =
-        await tokenResponse.text();
-
-      throw new Error(
-        `Deepgram token error: ${errorText}`
-      );
+      const errorText = await tokenResponse.text();
+      throw new Error(`Deepgram token error: ${errorText}`);
     }
-
-
-    const tokenData =
-      await tokenResponse.json();
-
-
-    if (!tokenData.token) {
-
-      throw new Error(
-        "Deepgram token was not returned."
-      );
-    }
-
-
-    /*
-     * Low-latency Deepgram configuration.
-     */
+    const tokenData = await tokenResponse.json();
+    if (!tokenData.token) throw new Error("Deepgram token was not returned.");
 
     const deepgramUrl =
       "wss://api.deepgram.com/v1/listen" +
-
       "?model=nova-3" +
-
-      "&language=" +
-      encodeURIComponent(
-        DEEPGRAM_LANGUAGE
-      ) +
-
+      "&language=" + encodeURIComponent(DEEPGRAM_LANGUAGE) +
       "&smart_format=true" +
-
       "&interim_results=true" +
-
       "&endpointing=300" +
-
       "&utterance_end_ms=1000";
 
-
-    socket =
-      new WebSocket(
-        deepgramUrl,
-        [
-          "bearer",
-          tokenData.token
-        ]
-      );
-
-
-    socket.onopen =
-      function () {
-
-        running =
-          true;
-
-
-        startBtn.disabled =
-          true;
-
-        stopBtn.disabled =
-          false;
-
-
-        setStatus(
-          "Listening..."
-        );
-
-
-        startRecorder();
-      };
-
-
-    socket.onmessage =
-      function (event) {
-
-        try {
-
-          const data =
-            JSON.parse(
-              event.data
-            );
-
-
-          const transcript =
-            data
-              .channel
-              ?.alternatives
-              ?.[0]
-              ?.transcript
-              || "";
-
-
-          if (!transcript.trim()) {
-            return;
-          }
-
-
-          /*
-           * FINAL RESULT
-           */
-
-          if (data.is_final) {
-
-            finalTranscript =
-              (
-                finalTranscript +
-                " " +
-                transcript
-              ).trim();
-
-
-            renderLiveTranscript(
-              finalTranscript,
-              ""
-            );
-          }
-
-
-          /*
-           * INTERIM RESULT
-           */
-
-          else {
-
-            renderLiveTranscript(
-              finalTranscript,
-              transcript
-            );
-          }
-
-
-          /*
-           * Send only completed
-           * speech segments to AI.
-           */
-
-          if (
-            data.speech_final
-          ) {
-
-            const sentence =
-              transcript.trim();
-
-
-            if (
-              sentence.length >= 2
-            ) {
-
-              analyzeSentence(
-                sentence
-              );
-            }
-
-
-            finalTranscript =
-              "";
-          }
-
-        }
-
-        catch (error) {
-
-          console.error(
-            "Deepgram message error:",
-            error
-          );
-        }
-
-      };
-
-
-    socket.onerror =
-      function (event) {
-
-        console.error(
-          "Deepgram WebSocket error:",
-          event
-        );
-
-
-        setStatus(
-          "Voice engine error."
-        );
-      };
-
-
-    socket.onclose =
-      function (event) {
-
-        console.log(
-          "Deepgram closed:",
-          event.code,
-          event.reason
-        );
-
-
-        if (running) {
-
-          setStatus(
-            `Voice engine disconnected (${event.code}).`
-          );
-        }
-      };
-
-
-  }
-
-  catch (error) {
-
-    console.error(
-      error
-    );
-
-
-    setStatus(
-      error.message ||
-      "Could not start listening."
-    );
-
-
-    cleanup();
-  }
-
-}
-
-
-/* =====================================
-   AUDIO RECORDER
-===================================== */
-
-function startRecorder() {
-
-  if (
-    !stream ||
-    !socket
-  ) {
-
-    return;
-  }
-
-
-  let mimeType =
-    "audio/webm;codecs=opus";
-
-
-  if (
-    !MediaRecorder
-      .isTypeSupported(
-        mimeType
-      )
-  ) {
-
-    mimeType =
-      "audio/webm";
-  }
-
-
-  recorder =
-    new MediaRecorder(
-      stream,
-      {
-        mimeType:
-          mimeType
-      }
-    );
-
-
-  recorder.ondataavailable =
-    function (event) {
-
-      if (
-        event.data.size > 0 &&
-        socket &&
-        socket.readyState ===
-          WebSocket.OPEN
-      ) {
-
-        socket.send(
-          event.data
-        );
-      }
-
+    socket = new WebSocket(deepgramUrl, ["bearer", tokenData.token]);
+
+    socket.onopen = function () {
+      running = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      setStatus("Listening...");
+      startRecorder();
     };
 
+    socket.onmessage = function (event) {
+      try {
+        const data = JSON.parse(event.data);
+        const transcript = data.channel?.alternatives?.[0]?.transcript || "";
+        if (!transcript.trim()) return;
 
-  /*
-   * Send audio every 100 ms.
-   */
+        if (data.is_final) {
+          finalTranscript = (finalTranscript + " " + transcript).trim();
+          renderLiveTranscript(finalTranscript, "");
+        } else {
+          renderLiveTranscript(finalTranscript, transcript);
+        }
 
-  recorder.start(
-    100
-  );
-}
+        if (data.speech_final) {
+          const sentence = transcript.trim();
+          if (sentence.length >= 2) analyzeSentence(sentence);
+          finalTranscript = "";
+        }
+      } catch (error) {
+        console.error("Deepgram message error:", error);
+      }
+    };
 
+    socket.onerror = function (event) {
+      console.error("Deepgram WebSocket error:", event);
+      setStatus("Voice engine error.");
+    };
 
-/* =====================================
-   LIVE TRANSCRIPT
-===================================== */
+    socket.onclose = function (event) {
+      console.log("Deepgram closed:", event.code, event.reason);
+      if (running) setStatus(`Voice engine disconnected (${event.code}).`);
+    };
 
-function renderLiveTranscript(
-  finalText,
-  interimText
-) {
-
-  liveTranscript.innerHTML = `
-
-    <div class="final-line">
-      ${escapeHtml(
-        finalText
-      )}
-    </div>
-
-    <div class="interim">
-      ${escapeHtml(
-        interimText
-      )}
-    </div>
-
-  `;
-}
-
-
-/* =====================================
-   AI ANALYSIS
-===================================== */
-
-async function analyzeSentence(
-  text
-) {
-
-  const card =
-    document.createElement(
-      "div"
-    );
-
-
-  card.className =
-    "correction-card";
-
-
-  card.innerHTML = `
-    <div class="thinking">
-      Analyzing...
-    </div>
-  `;
-
-
-  /*
-   * Remove empty message.
-   */
-
-  if (
-    results.children.length === 1 &&
-    results.firstElementChild
-      .classList
-      .contains("empty")
-  ) {
-
-    results.innerHTML =
-      "";
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || "Could not start listening.");
+    cleanup();
   }
+}
 
+function startRecorder() {
+  if (!stream || !socket) return;
+  let mimeType = "audio/webm;codecs=opus";
+  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
+  recorder = new MediaRecorder(stream, { mimeType: mimeType });
+  recorder.ondataavailable = function (event) {
+    if (event.data.size > 0 && socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(event.data);
+    }
+  };
+  recorder.start(100);
+}
 
-  /*
-   * Newest correction
-   * appears at the top.
-   */
+function renderLiveTranscript(finalText, interimText) {
+  liveTranscript.innerHTML = `
+    <div class="final-line">${escapeHtml(finalText)}</div>
+    <div class="interim">${escapeHtml(interimText)}</div>
+  `;
+}
 
-  results.prepend(
-    card
-  );
+async function analyzeSentence(text) {
+  const card = document.createElement("div");
+  card.className = "correction-card";
+  card.innerHTML = `<div class="thinking">Analyzing...</div>`;
 
+  if (results.children.length === 1 && results.firstElementChild.classList.contains("empty")) {
+    results.innerHTML = "";
+  }
+  results.prepend(card);
 
   try {
-
-    const response =
-      await fetch(
-        WORKER,
-        {
-
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              text:
-                text,
-
-              mode:
-                modeEl.value,
-
-              level:
-                levelEl.value,
-
-              language:
-                languageEl.value
-
-            })
-
-        }
-      );
-
+    const response = await fetch(WORKER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: text,
+        mode: modeEl.value,
+        level: levelEl.value,
+        language: languageEl.value,
+        extras: extrasEl.checked,
+      }),
+    });
 
     if (!response.ok) {
-
-      const errorText =
-        await response.text();
-
-
-      throw new Error(
-        `AI error ${response.status}: ${errorText}`
-      );
+      const errorText = await response.text();
+      throw new Error(`AI error ${response.status}: ${errorText}`);
     }
+    if (!response.body) throw new Error("AI returned no response stream.");
 
-
-    if (!response.body) {
-
-      throw new Error(
-        "AI returned no response stream."
-      );
-    }
-
-
-    /*
-     * Read the streaming
-     * Workers AI response.
-     */
-
-    const reader =
-      response.body
-        .getReader();
-
-
-    const decoder =
-      new TextDecoder();
-
-
-    let buffer =
-      "";
-
-    let generated =
-      "";
-
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let generated = "";
 
     while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      buffer += decoder.decode(result.value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
 
-      const result =
-        await reader.read();
-
-
-      if (result.done) {
-        break;
-      }
-
-
-      buffer +=
-        decoder.decode(
-          result.value,
-          {
-            stream:
-              true
-          }
-        );
-
-
-      const events =
-        buffer.split(
-          "\n\n"
-        );
-
-
-      buffer =
-        events.pop() ||
-        "";
-
-
-      for (
-        const event
-        of events
-      ) {
-
-        const lines =
-          event.split(
-            "\n"
-          );
-
-
-        for (
-          const line
-          of lines
-        ) {
-
-          if (
-            !line.startsWith(
-              "data:"
-            )
-          ) {
-
-            continue;
-          }
-
-
-          const payload =
-            line
-              .slice(5)
-              .trim();
-
-
-          if (
-            !payload ||
-            payload === "[DONE]"
-          ) {
-
-            continue;
-          }
-
-
+      for (const event of events) {
+        const lines = event.split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data:")) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === "[DONE]") continue;
           try {
-
-            const parsed =
-              JSON.parse(
-                payload
-              );
-
-
-            if (
-              typeof
-                parsed.response
-                === "string"
-            ) {
-
-              generated +=
-                parsed.response;
-
-
-              /*
-               * Show the streamed
-               * response immediately.
-               */
-
-              renderCorrection(
-                card,
-                generated
-              );
+            const parsed = JSON.parse(payload);
+            if (typeof parsed.response === "string") {
+              generated += parsed.response;
+              renderCorrection(card, generated);
             }
-
-          }
-
-          catch {
-            /*
-             * Ignore incomplete
-             * streaming chunks.
-             */
-          }
-
+          } catch {}
         }
-
       }
-
     }
-
-
-    /*
-     * Final rendering.
-     */
-
-    renderCorrection(
-      card,
-      generated
-    );
-
-
+    renderCorrection(card, generated);
+  } catch (error) {
+    console.error("Analysis error:", error);
+    card.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
   }
-
-  catch (error) {
-
-    console.error(
-      "Analysis error:",
-      error
-    );
-
-
-    card.innerHTML = `
-
-      <div class="error">
-        ${escapeHtml(
-          error.message
-        )}
-      </div>
-
-    `;
-  }
-
 }
 
+// Every labeled section the AI might send, in this exact order, so extractLine() always
+// knows where one section ends and the next begins.
+const ALL_LABELS = ["CORRECTED:", "NATURAL:", "WHY:", "ALTERNATIVES:", "VOCAB:"];
 
-/* =====================================
-   RENDER CORRECTION
-===================================== */
+function renderCorrection(card, generated) {
+  const corrected = extractLine(generated, "CORRECTED:");
+  const natural = extractLine(generated, "NATURAL:");
+  const why = extractLine(generated, "WHY:");
+  const alternatives = extractLine(generated, "ALTERNATIVES:");
+  const vocab = extractLine(generated, "VOCAB:");
 
-function renderCorrection(
-  card,
-  generated
-) {
-
-  const corrected =
-    extractLine(
-      generated,
-      "CORRECTED:"
-    );
-
-
-  const natural =
-    extractLine(
-      generated,
-      "NATURAL:"
-    );
-
-
-  const why =
-    extractLine(
-      generated,
-      "WHY:"
-    );
-
-
-  /*
-   * If the model hasn't produced
-   * the labels yet, show the
-   * streamed text directly.
-   */
-
-  if (
-    !corrected &&
-    !natural &&
-    !why
-  ) {
-
+  if (!corrected && !natural && !why && !alternatives && !vocab) {
     card.innerHTML = `
-
-      <div class="correction-label">
-        Correction
-      </div>
-
-      <div class="natural">
-        ${escapeHtml(
-          generated.trim()
-        )}
-      </div>
-
+      <div class="correction-label">Correction</div>
+      <div class="natural">${escapeHtml(generated.trim())}</div>
     `;
-
     return;
   }
 
-
   card.innerHTML = `
+    ${corrected ? `
+      <div class="correction-label">Corrected</div>
+      <div class="corrected">${escapeHtml(corrected)}</div>
+    ` : ""}
 
-    ${
-      corrected
-        ? `
+    ${natural ? `
+      <div class="correction-label" style="margin-top:12px;">More natural</div>
+      <div class="natural">${escapeHtml(natural)}</div>
+    ` : ""}
 
-          <div class="correction-label">
-            Corrected
-          </div>
+    ${why ? `<div class="why">${escapeHtml(why)}</div>` : ""}
 
-          <div class="corrected">
-            ${escapeHtml(
-              corrected
-            )}
-          </div>
+    ${alternatives ? `
+      <div class="correction-label" style="margin-top:12px;">Other ways to say it</div>
+      <div class="alt">${escapeHtml(alternatives.replace(/\|/g, "•"))}</div>
+    ` : ""}
 
-        `
-        : ""
-    }
-
-
-    ${
-      natural
-        ? `
-
-          <div
-            class="correction-label"
-            style="margin-top:12px;"
-          >
-            More natural
-          </div>
-
-          <div class="natural">
-            ${escapeHtml(
-              natural
-            )}
-          </div>
-
-        `
-        : ""
-    }
-
-
-    ${
-      why
-        ? `
-
-          <div class="why">
-            ${escapeHtml(
-              why
-            )}
-          </div>
-
-        `
-        : ""
-    }
-
+    ${vocab ? `
+      <div class="correction-label" style="margin-top:12px;">Vocabulary</div>
+      <div class="vocab">${escapeHtml(vocab)}</div>
+    ` : ""}
   `;
 }
 
+function extractLine(text, label) {
+  const index = text.indexOf(label);
+  if (index === -1) return "";
+  let value = text.slice(index + label.length);
 
-/* =====================================
-   EXTRACT AI LINE
-===================================== */
-
-function extractLine(
-  text,
-  label
-) {
-
-  const index =
-    text.indexOf(
-      label
-    );
-
-
-  if (
-    index === -1
-  ) {
-
-    return "";
+  for (const nextLabel of ALL_LABELS) {
+    if (nextLabel === label) continue;
+    const nextIndex = value.indexOf(nextLabel);
+    if (nextIndex !== -1) value = value.slice(0, nextIndex);
   }
 
-
-  let value =
-    text.slice(
-      index +
-      label.length
-    );
-
-
-  const labels = [
-    "CORRECTED:",
-    "NATURAL:",
-    "WHY:"
-  ];
-
-
-  for (
-    const nextLabel
-    of labels
-  ) {
-
-    if (
-      nextLabel ===
-      label
-    ) {
-
-      continue;
-    }
-
-
-    const nextIndex =
-      value.indexOf(
-        nextLabel
-      );
-
-
-    if (
-      nextIndex !== -1
-    ) {
-
-      value =
-        value.slice(
-          0,
-          nextIndex
-        );
-    }
-
-  }
-
-
-  return value
-    .replace(
-      /\n/g,
-      " "
-    )
-    .trim();
+  return value.replace(/\n/g, " ").trim();
 }
 
-
-/* =====================================
-   STOP
-===================================== */
-
-stopBtn.addEventListener(
-  "click",
-  stopListening
-);
-
+stopBtn.addEventListener("click", stopListening);
 
 function stopListening() {
-
-  running =
-    false;
-
-
-  if (recorder) {
-
-    try {
-
-      recorder.stop();
-
-    }
-
-    catch {}
-
-  }
-
-
-  if (socket) {
-
-    try {
-
-      socket.close();
-
-    }
-
-    catch {}
-
-  }
-
-
+  running = false;
+  if (recorder) { try { recorder.stop(); } catch {} }
+  if (socket) { try { socket.close(); } catch {} }
   cleanup();
-
-
-  setStatus(
-    "Stopped."
-  );
+  setStatus("Stopped.");
 }
-
-
-/* =====================================
-   CLEANUP
-===================================== */
 
 function cleanup() {
-
-  running =
-    false;
-
-
-  startBtn.disabled =
-    false;
-
-  stopBtn.disabled =
-    true;
-
-
-  if (recorder) {
-
-    try {
-
-      recorder.stop();
-
-    }
-
-    catch {}
-
-    recorder =
-      null;
-  }
-
-
-  if (socket) {
-
-    try {
-
-      socket.close();
-
-    }
-
-    catch {}
-
-    socket =
-      null;
-  }
-
-
-  if (stream) {
-
-    stream
-      .getTracks()
-      .forEach(
-        function (track) {
-          track.stop();
-        }
-      );
-
-    stream =
-      null;
-  }
+  running = false;
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  if (recorder) { try { recorder.stop(); } catch {} recorder = null; }
+  if (socket) { try { socket.close(); } catch {} socket = null; }
+  if (stream) { stream.getTracks().forEach(function (track) { track.stop(); }); stream = null; }
 }
 
-
-/* =====================================
-   HTML ESCAPING
-===================================== */
-
-function escapeHtml(
-  value
-) {
-
+function escapeHtml(value) {
   return String(value)
-
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-
-    .replace(
-      /</g,
-      "&lt;"
-    )
-
-    .replace(
-      />/g,
-      "&gt;"
-    )
-
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-
 </script>
-
-
 </body>
-
 </html>
-```
