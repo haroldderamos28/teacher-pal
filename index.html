@@ -1,853 +1,736 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teacher Pal – Live Coaching</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Pal</title>
 
-<style>
-  body {
-    font-family: system-ui, sans-serif;
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 0 1rem;
-    color: #222;
-  }
-
-  h1 { font-size: 1.4rem; }
-
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: .2rem 1rem;
-  }
-
-  label {
-    display: block;
-    font-size: .9rem;
-    color: #555;
-    margin-top: .8rem;
-  }
-
-  select {
-    width: 100%;
-    padding: .55rem;
-    margin-top: .25rem;
-    box-sizing: border-box;
-  }
-
-  .check {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    margin-top: 1rem;
-    font-size: .95rem;
-    color: #333;
-  }
-
-  button {
-    padding: .6rem 1.2rem;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 1rem;
-    margin-right: .5rem;
-  }
-
-  #status {
-    margin: .8rem 0;
-    color: #666;
-  }
-
-  .cols, .row {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr;
-    gap: 1rem;
-  }
-
-  .cols {
-    font-weight: 600;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: .4rem;
-  }
-
-  .row {
-    padding: .7rem 0;
-    border-bottom: 1px solid #eee;
-    line-height: 1.5;
-  }
-
-  .fb div {
-    margin-bottom: .25rem;
-  }
-
-  .fix {
-    color: #b00020;
-    font-weight: 500;
-  }
-
-  .nat {
-    color: #0a6b3a;
-    font-weight: 500;
-  }
-
-  .tip {
-    color: #555;
-  }
-
-  .ask {
-    color: #1a4fa0;
-  }
-
-  .ok {
-    color: #888;
-  }
-
-  .trn {
-    color: #0a6b3a;
-    font-weight: 500;
-  }
-
-  .sug {
-    color: #1a4fa0;
-  }
-
-  .interim {
-    color: #999;
-    padding: .7rem 0;
-    min-height: 1.4rem;
-  }
-
-  .err {
-    color: #b00020;
-  }
-
-  .muted {
-    color: #888;
-    font-style: italic;
-    font-weight: 400;
-  }
-
-  .miniBtn {
-    padding: .3rem .7rem;
-    font-size: .85rem;
-    margin: 0 .5rem .3rem 0;
-    cursor: pointer;
-  }
-
-  .ver {
-    color: #aaa;
-    font-size: .75rem;
-    margin-top: 2rem;
-  }
-
-  @media (max-width: 600px) {
-    .controls, .cols, .row {
-      grid-template-columns: 1fr;
-      gap: .3rem;
+  <style>
+    * {
+      box-sizing: border-box;
     }
-  }
-</style>
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    select,
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      border: none;
+      border-radius: 9px;
+      padding: 12px 18px;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #toggleBtn {
+      background: #2563eb;
+      color: white;
+    }
+
+    #pauseBtn {
+      background: #f59e0b;
+      color: white;
+      display: none;
+    }
+
+    #clearBtn {
+      background: #e5e7eb;
+      color: #222;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: bold;
+    }
+
+    .transcript {
+      font-size: 18px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .analysis {
+      line-height: 1.6;
+    }
+
+    .item {
+      border-top: 1px solid #eee;
+      padding: 18px 0;
+    }
+
+    .item:first-child {
+      border-top: none;
+    }
+
+    .original {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .good {
+      color: #15803d;
+    }
+
+    .warning {
+      color: #b45309;
+    }
+
+    .translation {
+      background: #f8fafc;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .small {
+      color: #777;
+      font-size: 13px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .checkbox-row input {
+      width: auto;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>Live Coaching</h1>
+<div class="container">
 
-<div class="controls">
-  <div>
-    <label for="lang">Student is speaking</label>
+  <div class="panel">
+    <h1>Teacher Pal</h1>
+    <div class="subtitle">
+      Live speaking coach for teachers
+    </div>
 
-    <select id="lang">
-      <option value="en">English (get corrections)</option>
+    <div class="controls">
 
-      <optgroup label="Translate to English">
-        <option value="ja">Japanese</option>
-        <option value="ko">Korean</option>
-        <option value="zh">Mandarin Chinese</option>
-        <option value="zh-TW">Mandarin Chinese (Traditional)</option>
-        <option value="zh-HK">Cantonese</option>
-        <option value="vi">Vietnamese</option>
-        <option value="th">Thai</option>
-        <option value="id">Indonesian</option>
-        <option value="ms">Malay</option>
-        <option value="es">Spanish</option>
-        <option value="fr">French</option>
-        <option value="de">German</option>
-        <option value="it">Italian</option>
-        <option value="pt">Portuguese</option>
-        <option value="nl">Dutch</option>
-        <option value="ru">Russian</option>
-        <option value="uk">Ukrainian</option>
-        <option value="pl">Polish</option>
-        <option value="tr">Turkish</option>
-        <option value="hi">Hindi</option>
-        <option value="el">Greek</option>
-        <option value="ro">Romanian</option>
-        <option value="hu">Hungarian</option>
-        <option value="cs">Czech</option>
-        <option value="sk">Slovak</option>
-        <option value="bg">Bulgarian</option>
-        <option value="sv">Swedish</option>
-        <option value="da">Danish</option>
-        <option value="no">Norwegian</option>
-        <option value="fi">Finnish</option>
-      </optgroup>
-    </select>
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode">
+          <option value="accurate">Accurate</option>
+          <option value="natural" selected>Natural</option>
+          <option value="casual">Casual</option>
+          <option value="business">Business</option>
+          <option value="professional">Professional</option>
+          <option value="concise">Concise</option>
+          <option value="student">Student-friendly</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="level">Level</label>
+        <select id="level">
+          <option value="basic">Basic</option>
+          <option value="intermediate" selected>Intermediate</option>
+          <option value="advanced">Advanced</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="lang">Student language</label>
+        <select id="lang">
+          <option value="en" selected>English</option>
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="zh">Chinese</option>
+          <option value="zh-TW">Chinese Traditional</option>
+          <option value="zh-HK">Chinese Hong Kong</option>
+          <option value="vi">Vietnamese</option>
+          <option value="th">Thai</option>
+          <option value="id">Indonesian</option>
+          <option value="ms">Malay</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+          <option value="nl">Dutch</option>
+          <option value="ru">Russian</option>
+          <option value="uk">Ukrainian</option>
+          <option value="pl">Polish</option>
+          <option value="tr">Turkish</option>
+          <option value="hi">Hindi</option>
+          <option value="el">Greek</option>
+          <option value="ro">Romanian</option>
+          <option value="hu">Hungarian</option>
+          <option value="cs">Czech</option>
+          <option value="sk">Slovak</option>
+          <option value="bg">Bulgarian</option>
+          <option value="sv">Swedish</option>
+          <option value="da">Danish</option>
+          <option value="no">Norwegian</option>
+          <option value="fi">Finnish</option>
+          <option value="et">Estonian</option>
+          <option value="lv">Latvian</option>
+          <option value="lt">Lithuanian</option>
+          <option value="ca">Catalan</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="minWords">Minimum words</label>
+        <input
+          type="number"
+          id="minWords"
+          value="3"
+          min="1"
+          max="30"
+        >
+      </div>
+
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="hideShort" checked>
+      <label for="hideShort">Ignore very short sentences</label>
+    </div>
+
+    <div style="margin-top:15px;">
+      <label for="extras">Extra instructions</label>
+      <textarea
+        id="extras"
+        placeholder="Optional instructions for Teacher Pal..."
+      ></textarea>
+    </div>
+
+    <div class="button-row">
+      <button id="toggleBtn">Start Listening</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <div id="status" class="status">
+      Voice engine ready.
+    </div>
   </div>
 
-  <div>
-    <label for="source">Audio source</label>
 
-    <select id="source">
-      <option value="tab">Tab / system audio (the other person's voice)</option>
-      <option value="mic">My microphone (my voice)</option>
-    </select>
+  <div class="panel">
+    <h2>Live Transcript</h2>
+
+    <div id="liveTranscript" class="transcript">
+      Nothing heard yet.
+    </div>
   </div>
+
+
+  <div class="panel">
+    <h2>Coaching</h2>
+
+    <div id="results">
+      Your corrections and suggestions will appear here.
+    </div>
+  </div>
+
 </div>
 
-<div class="controls" id="englishControls">
-
-  <div>
-    <label for="mode">Mode</label>
-
-    <select id="mode">
-      <option value="natural">Natural</option>
-      <option value="accurate">Accurate (corrections only)</option>
-      <option value="casual">Casual</option>
-      <option value="business">Business</option>
-      <option value="professional">Professional (formal)</option>
-      <option value="concise">Concise</option>
-      <option value="student">Student level (simple words)</option>
-    </select>
-  </div>
-
-  <div>
-    <label for="level">Difficulty</label>
-
-    <select id="level">
-      <option value="basic">Basic</option>
-      <option value="intermediate" selected>Intermediate</option>
-      <option value="advanced">Advanced</option>
-    </select>
-  </div>
-
-  <div>
-    <label for="minWords">
-      Only rephrase sentences with at least this many words
-    </label>
-
-    <select id="minWords">
-      <option value="1">1 (rephrase everything)</option>
-      <option value="4">4</option>
-      <option value="6" selected>6</option>
-      <option value="8">8</option>
-      <option value="10">10</option>
-    </select>
-  </div>
-
-  <div>
-    <label class="check">
-      <input type="checkbox" id="extras">
-      Show extras (other ways to say it, vocabulary)
-    </label>
-
-    <label class="check">
-      <input type="checkbox" id="hideShort">
-      Hide short replies instead of showing a checkmark
-    </label>
-  </div>
-</div>
-
-<div class="controls" id="translateControls" style="display:none">
-
-  <div>
-    <label for="translateLevel">Student's level</label>
-
-    <select id="translateLevel">
-      <option value="basic">Basic</option>
-      <option value="intermediate">Intermediate</option>
-      <option value="advanced">Advanced</option>
-    </select>
-  </div>
-
-</div>
-
-<button id="toggle">Start Listening</button>
-<button id="pauseBtn" style="display:none">Pause</button>
-
-<div id="status">Not connected.</div>
-<div id="interim" class="interim"></div>
-
-<div class="cols">
-  <div id="colLeft">Student said</div>
-  <div id="colRight">Feedback</div>
-</div>
-
-<div id="rows"></div>
-
-<div class="ver">version 28 – OpenAI</div>
 
 <script>
 
 const WORKER =
   'https://blue-base-6bdc.haroldderamos28.workers.dev';
 
-document.addEventListener('DOMContentLoaded', () => {
 
-  const $ = (id) => document.getElementById(id);
+// ------------------------------------------------------------
+// DOM
+// ------------------------------------------------------------
 
-  const langEl = $('lang');
-  const modeEl = $('mode');
-  const levelEl = $('level');
-  const extrasEl = $('extras');
+const toggleBtn = document.getElementById('toggleBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const clearBtn = document.getElementById('clearBtn');
 
-  const translateLevelEl = $('translateLevel');
-  const minWordsEl = $('minWords');
-  const hideShortEl = $('hideShort');
-  const sourceEl = $('source');
+const statusEl = document.getElementById('status');
+const liveTranscriptEl =
+  document.getElementById('liveTranscript');
 
-  const englishControlsEl = $('englishControls');
-  const translateControlsEl = $('translateControls');
+const resultsEl =
+  document.getElementById('results');
 
-  const toggleBtn = $('toggle');
-  const pauseBtn = $('pauseBtn');
-  const statusEl = $('status');
-  const rowsEl = $('rows');
-  const interimEl = $('interim');
+const modeEl =
+  document.getElementById('mode');
 
-  let socket = null;
-  let recorder = null;
-  let stream = null;
-  let displayStream = null;
+const levelEl =
+  document.getElementById('level');
 
-  let running = false;
-  let paused = false;
-  let stopping = false;
-  let keepAliveTimer = null;
+const langEl =
+  document.getElementById('lang');
 
-  function isTranslating() {
-    return langEl.value !== 'en';
-  }
+const minWordsEl =
+  document.getElementById('minWords');
 
-  function updateControlVisibility() {
+const hideShortEl =
+  document.getElementById('hideShort');
 
-    const translating = isTranslating();
+const extrasEl =
+  document.getElementById('extras');
 
-    englishControlsEl.style.display =
-      translating ? 'none' : '';
 
-    translateControlsEl.style.display =
-      translating ? '' : 'none';
+// ------------------------------------------------------------
+// STATE
+// ------------------------------------------------------------
 
-    $('colLeft').textContent =
-      translating
-        ? 'Student said (their language)'
-        : 'Student said';
+let socket = null;
+let recorder = null;
+let stream = null;
 
-    $('colRight').textContent =
-      translating
-        ? 'English translation'
-        : 'Feedback';
-  }
+let running = false;
+let stopping = false;
+let paused = false;
 
-  langEl.addEventListener(
-    'change',
-    updateControlVisibility
-  );
+let keepAliveTimer = null;
 
-  updateControlVisibility();
+let lastTranscript = '';
+let lastAnalyzedTranscript = '';
 
-  /* -----------------------------
-     Saved settings
-  ----------------------------- */
 
-  try {
+// ------------------------------------------------------------
+// STATUS
+// ------------------------------------------------------------
 
-    modeEl.value =
-      localStorage.getItem('tp_mode') ||
-      'natural';
+function setStatus(message) {
+  statusEl.textContent = message;
+}
 
-    levelEl.value =
-      localStorage.getItem('tp_level') ||
-      'intermediate';
 
-    extrasEl.checked =
-      localStorage.getItem('tp_extras') === '1';
+// ------------------------------------------------------------
+// KEEP ALIVE
+// ------------------------------------------------------------
 
-  } catch (e) {}
+function startKeepAlive() {
 
-  modeEl.addEventListener('change', () => {
+  stopKeepAlive();
 
-    try {
-      localStorage.setItem(
-        'tp_mode',
-        modeEl.value
-      );
-    } catch (e) {}
+  keepAliveTimer = setInterval(() => {
 
-  });
+    if (
+      socket &&
+      socket.readyState === WebSocket.OPEN
+    ) {
 
-  levelEl.addEventListener('change', () => {
-
-    try {
-      localStorage.setItem(
-        'tp_level',
-        levelEl.value
-      );
-    } catch (e) {}
-
-  });
-
-  extrasEl.addEventListener('change', () => {
-
-    try {
-      localStorage.setItem(
-        'tp_extras',
-        extrasEl.checked ? '1' : '0'
-      );
-    } catch (e) {}
-
-  });
-
-  /* -----------------------------
-     Deepgram keep alive
-  ----------------------------- */
-
-  function startKeepAlive() {
-
-    clearInterval(keepAliveTimer);
-
-    keepAliveTimer = setInterval(() => {
-
-      if (
-        socket &&
-        socket.readyState === WebSocket.OPEN
-      ) {
-
-        try {
-          socket.send(
-            JSON.stringify({
-              type: 'KeepAlive'
-            })
-          );
-        } catch (e) {}
-
+      try {
+        socket.send(
+          JSON.stringify({
+            type: 'KeepAlive'
+          })
+        );
+      } catch (error) {
+        console.error(
+          'KeepAlive error:',
+          error
+        );
       }
 
-    }, 5000);
-  }
+    }
 
-  function stopKeepAlive() {
+  }, 5000);
+}
 
+
+function stopKeepAlive() {
+
+  if (keepAliveTimer) {
     clearInterval(keepAliveTimer);
     keepAliveTimer = null;
   }
 
-  /* -----------------------------
-     Word count
-  ----------------------------- */
+}
 
-  function wordCount(text) {
 
-    return text
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .length;
-  }
+// ------------------------------------------------------------
+// GET TEMPORARY DEEPGRAM TOKEN
+// ------------------------------------------------------------
 
-  /* -----------------------------
-     Display feedback
-  ----------------------------- */
+async function getDeepgramToken() {
 
-  function addRow(sentence, data, translating) {
-
-    const row = document.createElement('div');
-    row.className = 'row';
-
-    const left = document.createElement('div');
-    left.textContent = sentence;
-
-    const right = document.createElement('div');
-    right.className = 'fb';
-
-    if (translating) {
-
-      const translation = document.createElement('div');
-      translation.className = 'trn';
-      translation.textContent =
-        'English: ' +
-        (data.translation || '');
-
-      right.appendChild(translation);
-
-      if (data.suggestion) {
-
-        const suggestion =
-          document.createElement('div');
-
-        suggestion.className = 'sug';
-
-        suggestion.textContent =
-          'Suggestion: ' +
-          data.suggestion;
-
-        right.appendChild(suggestion);
-      }
-
-    } else {
-
-      if (data.correction) {
-
-        const correction =
-          document.createElement('div');
-
-        correction.className = 'fix';
-
-        correction.textContent =
-          'Correction: ' +
-          data.correction;
-
-        right.appendChild(correction);
-      }
-
-      if (data.explanation) {
-
-        const explanation =
-          document.createElement('div');
-
-        explanation.className = 'tip';
-
-        explanation.textContent =
-          'Explanation: ' +
-          data.explanation;
-
-        right.appendChild(explanation);
-      }
-
-      if (data.natural) {
-
-        const natural =
-          document.createElement('div');
-
-        natural.className = 'nat';
-
-        natural.textContent =
-          'Natural: ' +
-          data.natural;
-
-        right.appendChild(natural);
-      }
-
-      if (data.followup) {
-
-        const followup =
-          document.createElement('div');
-
-        followup.className = 'ask';
-
-        followup.textContent =
-          'Follow-up: ' +
-          data.followup;
-
-        right.appendChild(followup);
-      }
-
-      if (
-        Array.isArray(data.alternatives) &&
-        data.alternatives.length
-      ) {
-
-        const alternatives =
-          document.createElement('div');
-
-        alternatives.className = 'tip';
-
-        alternatives.textContent =
-          'Other ways: ' +
-          data.alternatives.join(' / ');
-
-        right.appendChild(alternatives);
-      }
-
-      if (data.vocabulary) {
-
-        const vocabulary =
-          document.createElement('div');
-
-        vocabulary.className = 'tip';
-
-        vocabulary.textContent =
-          'Vocabulary: ' +
-          data.vocabulary;
-
-        right.appendChild(vocabulary);
-      }
+  const response = await fetch(
+    `${WORKER}/token`,
+    {
+      method: 'POST'
     }
+  );
 
-    row.appendChild(left);
-    row.appendChild(right);
+  if (!response.ok) {
 
-    rowsEl.prepend(row);
-  }
-
-  /* -----------------------------
-     Ask Cloudflare/OpenAI
-  ----------------------------- */
-
-  async function analyzeSentence(text) {
-
-    const translating = isTranslating();
-
-    const body = {
-      text: text,
-      translate: translating,
-      lang: langEl.value
-    };
-
-    if (translating) {
-
-      body.level =
-        translateLevelEl.value;
-
-    } else {
-
-      body.mode =
-        modeEl.value;
-
-      body.level =
-        levelEl.value;
-
-      body.extras =
-        extrasEl.checked;
-    }
-
-    const response = await fetch(
-      `${WORKER}/`,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json'
-        },
-
-        body: JSON.stringify(body)
-      }
+    throw new Error(
+      `Token request failed: ${response.status}`
     );
 
-    let data;
-
-    try {
-      data = await response.json();
-    } catch (e) {
-      throw new Error(
-        `Server returned HTTP ${response.status}`
-      );
-    }
-
-    if (!response.ok || data.error) {
-
-      throw new Error(
-        data.error ||
-        `Server returned HTTP ${response.status}`
-      );
-    }
-
-    return data;
   }
 
-  /* -----------------------------
-     Process final Deepgram result
-  ----------------------------- */
+  const data = await response.json();
 
-  async function processTranscript(text) {
-
-    text = String(text || '').trim();
-
-    if (!text) return;
-
-    const translating = isTranslating();
-
-    const minimum =
-      parseInt(minWordsEl.value, 10) || 1;
-
-    const count = wordCount(text);
-
-    interimEl.textContent = '';
-
-    /*
-      For translation mode, don't apply the
-      English minimum-word filter.
-    */
-
-    if (!translating && count < minimum) {
-
-      if (!hideShortEl.checked) {
-
-        const row =
-          document.createElement('div');
-
-        row.className = 'row';
-
-        const left =
-          document.createElement('div');
-
-        left.textContent = text;
-
-        const right =
-          document.createElement('div');
-
-        right.className = 'ok';
-
-        right.textContent =
-          '✓ Short reply';
-
-        row.appendChild(left);
-        row.appendChild(right);
-
-        rowsEl.prepend(row);
-      }
-
-      return;
-    }
-
-    try {
-
-      statusEl.textContent =
-        'Analyzing: ' + text;
-
-      const data =
-        await analyzeSentence(text);
-
-      addRow(
-        text,
-        data,
-        translating
-      );
-
-      if (running) {
-
-        statusEl.textContent =
-          paused
-            ? 'Paused.'
-            : 'Listening...';
-      }
-
-    } catch (error) {
-
-      console.error(
-        'Analysis error:',
-        error
-      );
-
-      const row =
-        document.createElement('div');
-
-      row.className = 'row';
-
-      const left =
-        document.createElement('div');
-
-      left.textContent = text;
-
-      const right =
-        document.createElement('div');
-
-      right.className = 'err';
-
-      right.textContent =
-        'Error: ' + error.message;
-
-      row.appendChild(left);
-      row.appendChild(right);
-
-      rowsEl.prepend(row);
-
-      if (running) {
-        statusEl.textContent =
-          'Listening — AI error.';
-      }
-    }
+  if (!data.token) {
+    throw new Error(
+      'Deepgram token was not returned by the Worker.'
+    );
   }
 
-  /* -----------------------------
-     Stop everything
-  ----------------------------- */
+  return data.token;
+}
 
-  function stopListening() {
 
-    stopping = true;
-    running = false;
-    paused = false;
+// ------------------------------------------------------------
+// START LISTENING
+// ------------------------------------------------------------
 
-    stopKeepAlive();
+async function startListening() {
 
-    if (recorder) {
+  if (running) {
+    return;
+  }
+
+  stopping = false;
+  paused = false;
+
+  try {
+
+    setStatus(
+      'Connecting to voice engine...'
+    );
+
+    toggleBtn.disabled = true;
+
+    // --------------------------------------------------------
+    // Get microphone
+    // --------------------------------------------------------
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+
+    // --------------------------------------------------------
+    // Get temporary Deepgram token
+    // --------------------------------------------------------
+
+    const token =
+      await getDeepgramToken();
+
+    console.log(
+      'Deepgram temporary token received.'
+    );
+
+    // --------------------------------------------------------
+    // Language
+    // --------------------------------------------------------
+
+    const targetLang =
+      langEl.value;
+
+    // --------------------------------------------------------
+    // Deepgram WebSocket URL
+    // --------------------------------------------------------
+
+    const deepgramUrl =
+      'wss://api.deepgram.com/v1/listen' +
+      '?model=nova-3' +
+      `&language=${encodeURIComponent(targetLang)}` +
+      '&smart_format=true' +
+      '&interim_results=true' +
+      '&utterance_end_ms=1000';
+
+    console.log(
+      'Connecting to Deepgram:',
+      deepgramUrl
+    );
+
+    // --------------------------------------------------------
+    // IMPORTANT:
+    // Temporary JWT token uses BEARER authentication.
+    // --------------------------------------------------------
+
+    socket = new WebSocket(
+      deepgramUrl,
+      [
+        'bearer',
+        token
+      ]
+    );
+
+
+    // --------------------------------------------------------
+    // WebSocket OPEN
+    // --------------------------------------------------------
+
+    socket.onopen = () => {
+
+      console.log(
+        'Deepgram WebSocket connected.'
+      );
+
+      running = true;
+      stopping = false;
+
+      toggleBtn.disabled = false;
+      toggleBtn.textContent =
+        'Stop Listening';
+
+      pauseBtn.style.display =
+        'inline-block';
+
+      setStatus(
+        'Listening...'
+      );
+
+      startKeepAlive();
+
+      startRecorder();
+    };
+
+
+    // --------------------------------------------------------
+    // WebSocket MESSAGE
+    // --------------------------------------------------------
+
+    socket.onmessage = (event) => {
 
       try {
 
+        const data =
+          JSON.parse(event.data);
+
+        console.log(
+          'Deepgram message:',
+          data
+        );
+
         if (
-          recorder.state !== 'inactive'
+          data.type === 'Results'
         ) {
-          recorder.stop();
+
+          const transcript =
+            data.channel
+              ?.alternatives
+              ?. [0]
+              ?.transcript || '';
+
+          if (transcript.trim()) {
+
+            liveTranscriptEl.textContent =
+              transcript;
+
+            processTranscript(
+              transcript,
+              data.is_final === true
+            );
+
+          }
+
         }
 
-      } catch (e) {}
+      } catch (error) {
 
-      recorder = null;
-    }
+        console.error(
+          'Deepgram message error:',
+          error
+        );
+
+      }
+
+    };
+
+
+    // --------------------------------------------------------
+    // WebSocket ERROR
+    // --------------------------------------------------------
+
+    socket.onerror = (error) => {
+
+      console.error(
+        'Deepgram WebSocket error:',
+        error
+      );
+
+      setStatus(
+        'Deepgram connection error. Check the browser console.'
+      );
+
+    };
+
+
+    // --------------------------------------------------------
+    // WebSocket CLOSE
+    // --------------------------------------------------------
+
+    socket.onclose = (event) => {
+
+      console.error(
+        'Deepgram WebSocket closed:',
+        event.code,
+        event.reason
+      );
+
+      stopKeepAlive();
+
+      if (!stopping) {
+
+        running = false;
+
+        if (recorder) {
+
+          try {
+            recorder.stop();
+          } catch (e) {}
+
+          recorder = null;
+        }
+
+        if (stream) {
+
+          stream
+            .getTracks()
+            .forEach(track => {
+
+              try {
+                track.stop();
+              } catch (e) {}
+
+            });
+
+          stream = null;
+        }
+
+        toggleBtn.disabled = false;
+
+        toggleBtn.textContent =
+          'Start Listening';
+
+        pauseBtn.style.display =
+          'none';
+
+        setStatus(
+          `Voice engine disconnected (${event.code})` +
+          (
+            event.reason
+              ? `: ${event.reason}`
+              : ''
+          )
+        );
+
+      }
+
+    };
+
+
+  } catch (error) {
+
+    console.error(
+      'Start listening error:',
+      error
+    );
+
+    running = false;
+    stopping = true;
+
+    stopKeepAlive();
 
     if (stream) {
 
-      stream.getTracks().forEach(
-        track => {
+      stream
+        .getTracks()
+        .forEach(track => {
+
           try {
             track.stop();
           } catch (e) {}
-        }
-      );
+
+        });
 
       stream = null;
     }
 
-    if (displayStream) {
-
-      displayStream.getTracks().forEach(
-        track => {
-          try {
-            track.stop();
-          } catch (e) {}
-        }
-      );
-
-      displayStream = null;
-    }
-
-    if (socket) {
-
-      try {
-
-        if (
-          socket.readyState ===
-          WebSocket.OPEN
-        ) {
-          socket.send(
-            JSON.stringify({
-              type: 'CloseStream'
-            })
-          );
-        }
-
-      } catch (e) {}
-
-      try {
-        socket.close();
-      } catch (e) {}
-
-      socket = null;
-    }
-
-    interimEl.textContent = '';
+    toggleBtn.disabled = false;
 
     toggleBtn.textContent =
       'Start Listening';
@@ -855,442 +738,642 @@ document.addEventListener('DOMContentLoaded', () => {
     pauseBtn.style.display =
       'none';
 
+    setStatus(
+      `Error: ${error.message}`
+    );
+
+  }
+
+}
+
+
+// ------------------------------------------------------------
+// MEDIA RECORDER
+// ------------------------------------------------------------
+
+function startRecorder() {
+
+  if (!stream) {
+    throw new Error(
+      'No microphone stream available.'
+    );
+  }
+
+  let mimeType =
+    'audio/webm;codecs=opus';
+
+  if (
+    !MediaRecorder.isTypeSupported(
+      mimeType
+    )
+  ) {
+
+    mimeType =
+      'audio/webm';
+
+  }
+
+  if (
+    !MediaRecorder.isTypeSupported(
+      mimeType
+    )
+  ) {
+
+    throw new Error(
+      'Your browser does not support the required audio format.'
+    );
+
+  }
+
+  recorder =
+    new MediaRecorder(
+      stream,
+      {
+        mimeType
+      }
+    );
+
+
+  recorder.ondataavailable =
+    async (event) => {
+
+      if (
+        event.data &&
+        event.data.size > 0 &&
+        socket &&
+        socket.readyState === WebSocket.OPEN &&
+        !paused
+      ) {
+
+        try {
+
+          const buffer =
+            await event.data.arrayBuffer();
+
+          socket.send(buffer);
+
+        } catch (error) {
+
+          console.error(
+            'Audio send error:',
+            error
+          );
+
+        }
+
+      }
+
+    };
+
+
+  recorder.onerror =
+    (event) => {
+
+      console.error(
+        'Recorder error:',
+        event
+      );
+
+    };
+
+
+  recorder.onstop =
+    () => {
+
+      console.log(
+        'Recorder stopped.'
+      );
+
+    };
+
+
+  recorder.start(250);
+
+  console.log(
+    'Recorder started.'
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// PROCESS TRANSCRIPT
+// ------------------------------------------------------------
+
+function processTranscript(
+  transcript,
+  isFinal
+) {
+
+  const clean =
+    transcript.trim();
+
+  if (!clean) {
+    return;
+  }
+
+  lastTranscript = clean;
+
+  if (!isFinal) {
+    return;
+  }
+
+  const words =
+    clean
+      .split(/\s+/)
+      .filter(Boolean);
+
+  const minimum =
+    Number(minWordsEl.value) || 1;
+
+  if (
+    hideShortEl.checked &&
+    words.length < minimum
+  ) {
+
+    console.log(
+      'Ignoring short sentence:',
+      clean
+    );
+
+    return;
+
+  }
+
+  if (
+    clean.toLowerCase() ===
+    lastAnalyzedTranscript.toLowerCase()
+  ) {
+
+    return;
+
+  }
+
+  lastAnalyzedTranscript =
+    clean;
+
+  analyzeSentence(clean);
+}
+
+
+// ------------------------------------------------------------
+// ANALYZE SENTENCE
+// ------------------------------------------------------------
+
+async function analyzeSentence(
+  sentence
+) {
+
+  const item =
+    document.createElement('div');
+
+  item.className =
+    'item';
+
+  item.innerHTML = `
+    <div class="original">
+      ${escapeHtml(sentence)}
+    </div>
+
+    <div class="small">
+      Analyzing...
+    </div>
+  `;
+
+  resultsEl.prepend(item);
+
+
+  try {
+
+    const response =
+      await fetch(
+        WORKER,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          body: JSON.stringify({
+            text: sentence,
+
+            mode:
+              modeEl.value,
+
+            level:
+              levelEl.value,
+
+            targetLanguage:
+              langEl.value,
+
+            extras:
+              extrasEl.value
+          })
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        `Analysis failed: ${response.status}`
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+    console.log(
+      'AI analysis:',
+      data
+    );
+
+
+    renderAnalysis(
+      item,
+      sentence,
+      data
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      'Analysis error:',
+      error
+    );
+
+    item.innerHTML = `
+      <div class="original">
+        ${escapeHtml(sentence)}
+      </div>
+
+      <div class="warning">
+        Analysis error: ${escapeHtml(error.message)}
+      </div>
+    `;
+
+  }
+
+}
+
+
+// ------------------------------------------------------------
+// RENDER ANALYSIS
+// ------------------------------------------------------------
+
+function renderAnalysis(
+  item,
+  sentence,
+  data
+) {
+
+  const corrected =
+    data.corrected ||
+    data.natural ||
+    data.suggestion ||
+    '';
+
+  const explanation =
+    data.explanation ||
+    data.reason ||
+    '';
+
+  const translation =
+    data.translation ||
+    '';
+
+  const alternatives =
+    data.alternatives ||
+    [];
+
+
+  let html = `
+    <div class="original">
+      ${escapeHtml(sentence)}
+    </div>
+  `;
+
+
+  if (corrected) {
+
+    html += `
+      <div>
+        <strong>Suggested:</strong>
+        <span class="good">
+          ${escapeHtml(corrected)}
+        </span>
+      </div>
+    `;
+
+  }
+
+
+  if (explanation) {
+
+    html += `
+      <div class="analysis">
+        <strong>Why:</strong>
+        ${escapeHtml(explanation)}
+      </div>
+    `;
+
+  }
+
+
+  if (translation) {
+
+    html += `
+      <div class="translation">
+        <strong>Translation:</strong><br>
+        ${escapeHtml(translation)}
+      </div>
+    `;
+
+  }
+
+
+  if (
+    Array.isArray(alternatives) &&
+    alternatives.length
+  ) {
+
+    html += `
+      <div style="margin-top:10px;">
+        <strong>Alternatives:</strong>
+        <ul>
+          ${alternatives
+            .map(
+              x =>
+                `<li>${escapeHtml(String(x))}</li>`
+            )
+            .join('')}
+        </ul>
+      </div>
+    `;
+
+  }
+
+
+  if (
+    !corrected &&
+    !explanation &&
+    !translation &&
+    !alternatives.length
+  ) {
+
+    html += `
+      <div class="small">
+        No additional correction needed.
+      </div>
+    `;
+
+  }
+
+
+  item.innerHTML =
+    html;
+
+}
+
+
+// ------------------------------------------------------------
+// STOP LISTENING
+// ------------------------------------------------------------
+
+function stopListening() {
+
+  stopping = true;
+  running = false;
+  paused = false;
+
+  stopKeepAlive();
+
+
+  if (recorder) {
+
+    try {
+      recorder.stop();
+    } catch (e) {}
+
+    recorder = null;
+
+  }
+
+
+  if (socket) {
+
+    try {
+
+      if (
+        socket.readyState ===
+        WebSocket.OPEN
+      ) {
+
+        socket.send(
+          JSON.stringify({
+            type: 'CloseStream'
+          })
+        );
+
+      }
+
+    } catch (e) {}
+
+
+    try {
+      socket.close();
+    } catch (e) {}
+
+    socket = null;
+
+  }
+
+
+  if (stream) {
+
+    stream
+      .getTracks()
+      .forEach(track => {
+
+        try {
+          track.stop();
+        } catch (e) {}
+
+      });
+
+    stream = null;
+
+  }
+
+
+  toggleBtn.disabled = false;
+
+  toggleBtn.textContent =
+    'Start Listening';
+
+  pauseBtn.style.display =
+    'none';
+
+  pauseBtn.textContent =
+    'Pause';
+
+  setStatus(
+    'Voice engine stopped.'
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// PAUSE
+// ------------------------------------------------------------
+
+function togglePause() {
+
+  if (!running) {
+    return;
+  }
+
+  paused =
+    !paused;
+
+  if (paused) {
+
+    pauseBtn.textContent =
+      'Resume';
+
+    setStatus(
+      'Paused.'
+    );
+
+  } else {
+
     pauseBtn.textContent =
       'Pause';
 
-    statusEl.textContent =
-      'Not connected.';
+    setStatus(
+      'Listening...'
+    );
 
-    stopping = false;
   }
 
-  /* -----------------------------
-     Pause / Resume
-  ----------------------------- */
+}
 
-  pauseBtn.addEventListener(
-    'click',
-    () => {
 
-      if (!running) return;
+// ------------------------------------------------------------
+// CLEAR
+// ------------------------------------------------------------
 
-      paused = !paused;
+function clearResults() {
 
-      if (paused) {
+  resultsEl.innerHTML =
+    'Your corrections and suggestions will appear here.';
 
-        pauseBtn.textContent =
-          'Resume';
+  liveTranscriptEl.textContent =
+    'Nothing heard yet.';
 
-        statusEl.textContent =
-          'Paused.';
+  lastTranscript = '';
+  lastAnalyzedTranscript = '';
 
-      } else {
+}
 
-        pauseBtn.textContent =
-          'Pause';
 
-        statusEl.textContent =
-          'Listening...';
-      }
+// ------------------------------------------------------------
+// HTML ESCAPE
+// ------------------------------------------------------------
 
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+}
+
+
+// ------------------------------------------------------------
+// BUTTON EVENTS
+// ------------------------------------------------------------
+
+toggleBtn.addEventListener(
+  'click',
+  () => {
+
+    if (running) {
+      stopListening();
+    } else {
+      startListening();
     }
-  );
 
-  /* -----------------------------
-     Start listening
-  ----------------------------- */
+  }
+);
 
-  toggleBtn.addEventListener(
-    'click',
-    async () => {
 
-      if (running) {
+pauseBtn.addEventListener(
+  'click',
+  togglePause
+);
 
-        stopListening();
-        return;
-      }
+
+clearBtn.addEventListener(
+  'click',
+  clearResults
+);
+
+
+// ------------------------------------------------------------
+// CLEANUP
+// ------------------------------------------------------------
+
+window.addEventListener(
+  'beforeunload',
+  () => {
+
+    stopping = true;
+
+    stopKeepAlive();
+
+    if (recorder) {
 
       try {
+        recorder.stop();
+      } catch (e) {}
 
-        statusEl.textContent =
-          'Obtaining access token...';
-
-        const tokenRes =
-          await fetch(
-            `${WORKER}/token`,
-            {
-              method: 'POST'
-            }
-          );
-
-        let tokenData;
-
-        try {
-          tokenData =
-            await tokenRes.json();
-        } catch (e) {
-          throw new Error(
-            `Token server returned HTTP ${tokenRes.status}`
-          );
-        }
-
-        if (
-          !tokenRes.ok ||
-          tokenData.error
-        ) {
-          throw new Error(
-            tokenData.error ||
-            'Could not obtain Deepgram token.'
-          );
-        }
-
-        if (!tokenData.token) {
-
-          throw new Error(
-            'Deepgram token was empty.'
-          );
-        }
-
-        statusEl.textContent =
-          'Connecting to voice engine...';
-
-        const targetLang =
-          langEl.value;
-
-        /*
-          Correct Deepgram WebSocket URL.
-        */
-
-        const deepgramUrl =
-          'wss://api.deepgram.com/v1/listen' +
-          '?model=nova-3' +
-          `&language=${encodeURIComponent(targetLang)}` +
-          '&smart_format=true' +
-          '&interim_results=true' +
-          '&utterance_end_ms=1000';
-
-        socket =
-          new WebSocket(
-            deepgramUrl,
-            [
-              'token',
-              tokenData.token
-            ]
-          );
-
-        socket.onopen =
-          async () => {
-
-            running = true;
-            stopping = false;
-
-            toggleBtn.textContent =
-              'Stop Listening';
-
-            pauseBtn.style.display =
-              'inline-block';
-
-            statusEl.textContent =
-              'Voice engine active. Accessing audio...';
-
-            startKeepAlive();
-
-            try {
-
-              const audioSource =
-                sourceEl.value;
-
-              if (
-                audioSource === 'mic'
-              ) {
-
-                stream =
-                  await navigator
-                    .mediaDevices
-                    .getUserMedia({
-                      audio: true
-                    });
-
-              } else {
-
-                displayStream =
-                  await navigator
-                    .mediaDevices
-                    .getDisplayMedia({
-                      video: true,
-                      audio: true
-                    });
-
-                const audioTracks =
-                  displayStream
-                    .getAudioTracks();
-
-                if (
-                  audioTracks.length === 0
-                ) {
-
-                  throw new Error(
-                    'No system audio was selected. Make sure "Share audio" is enabled.'
-                  );
-                }
-
-                stream =
-                  new MediaStream(
-                    audioTracks
-                  );
-              }
-
-              /*
-                Some browsers don't expose
-                audio/webm directly.
-              */
-
-              let mimeType =
-                'audio/webm';
-
-              if (
-                !MediaRecorder
-                  .isTypeSupported(
-                    mimeType
-                  )
-              ) {
-
-                mimeType =
-                  'audio/webm;codecs=opus';
-              }
-
-              if (
-                !MediaRecorder
-                  .isTypeSupported(
-                    mimeType
-                  )
-              ) {
-
-                throw new Error(
-                  'This browser does not support WebM audio recording.'
-                );
-              }
-
-              recorder =
-                new MediaRecorder(
-                  stream,
-                  {
-                    mimeType
-                  }
-                );
-
-              recorder.ondataavailable =
-                (event) => {
-
-                  if (
-                    event.data.size > 0 &&
-                    socket &&
-                    socket.readyState ===
-                      WebSocket.OPEN &&
-                    !paused
-                  ) {
-
-                    try {
-                      socket.send(
-                        event.data
-                      );
-                    } catch (e) {
-
-                      console.error(
-                        'Audio send error:',
-                        e
-                      );
-                    }
-                  }
-                };
-
-              recorder.onerror =
-                (event) => {
-
-                  console.error(
-                    'Recorder error:',
-                    event
-                  );
-
-                  statusEl.textContent =
-                    'Audio recorder error.';
-                };
-
-              recorder.start(250);
-
-              statusEl.textContent =
-                'Listening...';
-
-            } catch (error) {
-
-              console.error(
-                'Audio error:',
-                error
-              );
-
-              statusEl.textContent =
-                error.message;
-
-              stopListening();
-            }
-          };
-
-        socket.onmessage =
-          async (event) => {
-
-            try {
-
-              const data =
-                JSON.parse(
-                  event.data
-                );
-
-              /*
-                Deepgram interim transcript.
-              */
-
-              if (
-                data.type === 'Results'
-              ) {
-
-                const transcript =
-                  data.channel
-                    ?.alternatives
-                    ?. [0]
-                    ?.transcript || '';
-
-                if (
-                  transcript &&
-                  !data.is_final
-                ) {
-
-                  interimEl.textContent =
-                    transcript;
-                }
-
-                /*
-                  Only process speech-final
-                  transcripts so we don't send
-                  the same sentence repeatedly
-                  to OpenAI.
-                */
-
-                if (
-                  data.is_final &&
-                  (
-                    data.speech_final ||
-                    data.from_finalize
-                  )
-                ) {
-
-                  await processTranscript(
-                    transcript
-                  );
-                }
-              }
-
-            } catch (error) {
-
-              console.error(
-                'Deepgram message error:',
-                error
-              );
-            }
-          };
-
-        socket.onerror =
-          (error) => {
-
-            console.error(
-              'Deepgram WebSocket error:',
-              error
-            );
-
-            statusEl.textContent =
-              'Voice engine connection error.';
-          };
-
-        socket.onclose =
-          (event) => {
-
-            console.log(
-              'Deepgram closed:',
-              event.code,
-              event.reason
-            );
-
-            if (!stopping) {
-
-              running = false;
-
-              stopKeepAlive();
-
-              if (recorder) {
-
-                try {
-                  recorder.stop();
-                } catch (e) {}
-
-                recorder = null;
-              }
-
-              if (stream) {
-
-                stream
-                  .getTracks()
-                  .forEach(
-                    track => {
-                      try {
-                        track.stop();
-                      } catch (e) {}
-                    }
-                  );
-
-                stream = null;
-              }
-
-              toggleBtn.textContent =
-                'Start Listening';
-
-              pauseBtn.style.display =
-                'none';
-
-              statusEl.textContent =
-                'Voice engine disconnected.';
-            }
-          };
-
-      } catch (error) {
-
-        console.error(
-          'Start error:',
-          error
-        );
-
-        stopListening();
-
-        statusEl.textContent =
-          'Error: ' +
-          error.message;
-      }
     }
-  );
 
-  /*
-    If the user stops sharing system audio
-    from the browser's sharing controls,
-    stop the application too.
-  */
+    if (socket) {
 
-  document.addEventListener(
-    'visibilitychange',
-    () => {
-      /* Intentionally empty.
-         Listening continues in the tab. */
+      try {
+        socket.close();
+      } catch (e) {}
+
     }
-  );
 
-});
+    if (stream) {
+
+      stream
+        .getTracks()
+        .forEach(track => {
+
+          try {
+            track.stop();
+          } catch (e) {}
+
+        });
+
+    }
+
+  }
+);
+
 </script>
 
 </body>
