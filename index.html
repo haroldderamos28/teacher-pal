@@ -100,6 +100,12 @@
             <option value="ca">Catalan</option>
           </select>
         </label>
+        <label>Audio source:
+          <select id="audioSource">
+            <option value="mic" selected>Microphone</option>
+            <option value="tab">Tab / window audio (share screen)</option>
+          </select>
+        </label>
         <label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives &amp; vocabulary)</label>
         <button id="startBtn">Start Listening</button>
         <button id="stopBtn" disabled>Stop</button>
@@ -140,6 +146,7 @@ const modeEl = document.getElementById("mode");
 const levelEl = document.getElementById("level");
 const languageEl = document.getElementById("language");
 const extrasEl = document.getElementById("extras");
+const audioSourceEl = document.getElementById("audioSource");
 
 function setStatus(message) { statusEl.textContent = message; }
 
@@ -148,8 +155,22 @@ startBtn.addEventListener("click", startListening);
 async function startListening() {
   if (running) return;
   try {
-    setStatus("Requesting microphone...");
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (audioSourceEl.value === "tab") {
+      setStatus("Choose the tab or window to share, and check \"Share audio\"...");
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const audioTracks = displayStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        displayStream.getTracks().forEach(function (track) { track.stop(); });
+        throw new Error('No audio was shared. When the share dialog appears, enable "Share audio" (or "Share tab audio").');
+      }
+      // We only need the audio; stop the video track right away so no extra permission lingers.
+      displayStream.getVideoTracks().forEach(function (track) { track.stop(); });
+      stream = new MediaStream(audioTracks);
+      stream._displaySource = displayStream;
+    } else {
+      setStatus("Requesting microphone...");
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
 
     setStatus("Connecting to Deepgram...");
     const tokenResponse = await fetch(`${WORKER}/token`, { method: "POST" });
@@ -175,6 +196,7 @@ async function startListening() {
       running = true;
       startBtn.disabled = true;
       stopBtn.disabled = false;
+      audioSourceEl.disabled = true;
       setStatus("Listening...");
       startRecorder();
     };
@@ -221,6 +243,11 @@ async function startListening() {
 
 function startRecorder() {
   if (!stream || !socket) return;
+  stream.getAudioTracks().forEach(function (track) {
+    track.addEventListener("ended", function () {
+      if (running) { setStatus("Audio sharing stopped."); stopListening(); }
+    });
+  });
   let mimeType = "audio/webm;codecs=opus";
   if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
   recorder = new MediaRecorder(stream, { mimeType: mimeType });
@@ -377,7 +404,12 @@ function cleanup() {
   stopBtn.disabled = true;
   if (recorder) { try { recorder.stop(); } catch {} recorder = null; }
   if (socket) { try { socket.close(); } catch {} socket = null; }
-  if (stream) { stream.getTracks().forEach(function (track) { track.stop(); }); stream = null; }
+  if (stream) {
+    stream.getTracks().forEach(function (track) { track.stop(); });
+    if (stream._displaySource) stream._displaySource.getTracks().forEach(function (track) { track.stop(); });
+    stream = null;
+  }
+  audioSourceEl.disabled = false;
 }
 
 function escapeHtml(value) {
