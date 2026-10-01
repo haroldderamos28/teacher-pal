@@ -1,8 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Teacher Pal</title>
 
   <style>
@@ -18,13 +20,17 @@
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
     }
 
     h1 {
       margin: 0 0 5px;
+    }
+
+    h2 {
+      margin-top: 0;
     }
 
     .subtitle {
@@ -63,7 +69,7 @@
     }
 
     textarea {
-      min-height: 100px;
+      min-height: 80px;
       resize: vertical;
     }
 
@@ -74,6 +80,11 @@
       font-size: 15px;
       cursor: pointer;
       font-weight: bold;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
     }
 
     #toggleBtn {
@@ -108,51 +119,6 @@
       font-weight: bold;
     }
 
-    .transcript {
-      font-size: 18px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-    }
-
-    .analysis {
-      line-height: 1.6;
-    }
-
-    .item {
-      border-top: 1px solid #eee;
-      padding: 18px 0;
-    }
-
-    .item:first-child {
-      border-top: none;
-    }
-
-    .original {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .good {
-      color: #15803d;
-    }
-
-    .warning {
-      color: #b45309;
-    }
-
-    .translation {
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 8px;
-      margin-top: 8px;
-    }
-
-    .small {
-      color: #777;
-      font-size: 13px;
-    }
-
     .checkbox-row {
       display: flex;
       align-items: center;
@@ -160,23 +126,179 @@
       margin-top: 10px;
     }
 
+    .checkbox-row label {
+      margin: 0;
+      font-weight: normal;
+    }
+
     .checkbox-row input {
       width: auto;
     }
 
-    .hidden {
-      display: none;
+    /* ========================================================
+       MAIN TWO-COLUMN COACHING AREA
+       ======================================================== */
+
+    .coach-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
     }
 
-    @media (max-width: 600px) {
-      .container {
-        padding: 10px;
+    .coach-panel {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+
+      min-height: 500px;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    .coach-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #eee;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .coach-header h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .live-badge {
+      font-size: 12px;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #e5e7eb;
+      color: #666;
+    }
+
+    .live-badge.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .coach-content {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 650px;
+    }
+
+    /* Live transcript */
+
+    .live-transcript {
+      font-size: 21px;
+      line-height: 1.65;
+      color: #111827;
+      min-height: 100px;
+    }
+
+    .live-placeholder {
+      color: #9ca3af;
+      font-size: 17px;
+    }
+
+    /* Correction cards */
+
+    .correction-item {
+      border-bottom: 1px solid #eee;
+      padding: 0 0 20px;
+      margin-bottom: 20px;
+    }
+
+    .correction-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .original-label,
+    .suggestion-label,
+    .why-label,
+    .translation-label,
+    .alternative-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #6b7280;
+      margin-bottom: 5px;
+    }
+
+    .original-text {
+      font-size: 17px;
+      color: #374151;
+      margin-bottom: 14px;
+    }
+
+    .suggestion {
+      background: #ecfdf5;
+      border-left: 4px solid #22c55e;
+      padding: 12px;
+      border-radius: 7px;
+      font-size: 17px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .why {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 7px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .translation {
+      background: #eff6ff;
+      padding: 12px;
+      border-radius: 7px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .alternatives {
+      padding-left: 20px;
+      line-height: 1.6;
+    }
+
+    .analyzing {
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .error {
+      color: #b91c1c;
+      background: #fef2f2;
+      padding: 10px;
+      border-radius: 7px;
+    }
+
+    .small {
+      color: #777;
+      font-size: 13px;
+    }
+
+    @media (max-width: 800px) {
+
+      .coach-grid {
+        grid-template-columns: 1fr;
       }
 
-      .panel {
-        padding: 14px;
+      .coach-panel {
+        min-height: 300px;
       }
+
+      .coach-content {
+        max-height: 500px;
+      }
+
     }
+
   </style>
 </head>
 
@@ -184,79 +306,239 @@
 
 <div class="container">
 
+  <!-- ======================================================
+       HEADER / CONTROLS
+       ====================================================== -->
+
   <div class="panel">
+
     <h1>Teacher Pal</h1>
+
     <div class="subtitle">
       Live speaking coach for teachers
     </div>
 
+
     <div class="controls">
 
       <div>
-        <label for="mode">Mode</label>
+        <label for="mode">
+          Mode
+        </label>
+
         <select id="mode">
-          <option value="accurate">Accurate</option>
-          <option value="natural" selected>Natural</option>
-          <option value="casual">Casual</option>
-          <option value="business">Business</option>
-          <option value="professional">Professional</option>
-          <option value="concise">Concise</option>
-          <option value="student">Student-friendly</option>
+
+          <option value="accurate">
+            Accurate
+          </option>
+
+          <option value="natural" selected>
+            Natural
+          </option>
+
+          <option value="casual">
+            Casual
+          </option>
+
+          <option value="business">
+            Business
+          </option>
+
+          <option value="professional">
+            Professional
+          </option>
+
+          <option value="concise">
+            Concise
+          </option>
+
+          <option value="student">
+            Student-friendly
+          </option>
+
         </select>
       </div>
 
+
       <div>
-        <label for="level">Level</label>
+        <label for="level">
+          Level
+        </label>
+
         <select id="level">
-          <option value="basic">Basic</option>
-          <option value="intermediate" selected>Intermediate</option>
-          <option value="advanced">Advanced</option>
+
+          <option value="basic">
+            Basic
+          </option>
+
+          <option value="intermediate" selected>
+            Intermediate
+          </option>
+
+          <option value="advanced">
+            Advanced
+          </option>
+
         </select>
       </div>
 
+
       <div>
-        <label for="lang">Student language</label>
+        <label for="lang">
+          Student language
+        </label>
+
         <select id="lang">
-          <option value="en" selected>English</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="zh">Chinese</option>
-          <option value="zh-TW">Chinese Traditional</option>
-          <option value="zh-HK">Chinese Hong Kong</option>
-          <option value="vi">Vietnamese</option>
-          <option value="th">Thai</option>
-          <option value="id">Indonesian</option>
-          <option value="ms">Malay</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="ru">Russian</option>
-          <option value="uk">Ukrainian</option>
-          <option value="pl">Polish</option>
-          <option value="tr">Turkish</option>
-          <option value="hi">Hindi</option>
-          <option value="el">Greek</option>
-          <option value="ro">Romanian</option>
-          <option value="hu">Hungarian</option>
-          <option value="cs">Czech</option>
-          <option value="sk">Slovak</option>
-          <option value="bg">Bulgarian</option>
-          <option value="sv">Swedish</option>
-          <option value="da">Danish</option>
-          <option value="no">Norwegian</option>
-          <option value="fi">Finnish</option>
-          <option value="et">Estonian</option>
-          <option value="lv">Latvian</option>
-          <option value="lt">Lithuanian</option>
-          <option value="ca">Catalan</option>
+
+          <option value="en" selected>
+            English
+          </option>
+
+          <option value="ja">
+            Japanese
+          </option>
+
+          <option value="ko">
+            Korean
+          </option>
+
+          <option value="zh">
+            Chinese
+          </option>
+
+          <option value="zh-TW">
+            Traditional Chinese
+          </option>
+
+          <option value="zh-HK">
+            Hong Kong Chinese
+          </option>
+
+          <option value="vi">
+            Vietnamese
+          </option>
+
+          <option value="th">
+            Thai
+          </option>
+
+          <option value="id">
+            Indonesian
+          </option>
+
+          <option value="ms">
+            Malay
+          </option>
+
+          <option value="es">
+            Spanish
+          </option>
+
+          <option value="fr">
+            French
+          </option>
+
+          <option value="de">
+            German
+          </option>
+
+          <option value="it">
+            Italian
+          </option>
+
+          <option value="pt">
+            Portuguese
+          </option>
+
+          <option value="nl">
+            Dutch
+          </option>
+
+          <option value="ru">
+            Russian
+          </option>
+
+          <option value="uk">
+            Ukrainian
+          </option>
+
+          <option value="pl">
+            Polish
+          </option>
+
+          <option value="tr">
+            Turkish
+          </option>
+
+          <option value="hi">
+            Hindi
+          </option>
+
+          <option value="el">
+            Greek
+          </option>
+
+          <option value="ro">
+            Romanian
+          </option>
+
+          <option value="hu">
+            Hungarian
+          </option>
+
+          <option value="cs">
+            Czech
+          </option>
+
+          <option value="sk">
+            Slovak
+          </option>
+
+          <option value="bg">
+            Bulgarian
+          </option>
+
+          <option value="sv">
+            Swedish
+          </option>
+
+          <option value="da">
+            Danish
+          </option>
+
+          <option value="no">
+            Norwegian
+          </option>
+
+          <option value="fi">
+            Finnish
+          </option>
+
+          <option value="et">
+            Estonian
+          </option>
+
+          <option value="lv">
+            Latvian
+          </option>
+
+          <option value="lt">
+            Lithuanian
+          </option>
+
+          <option value="ca">
+            Catalan
+          </option>
+
         </select>
       </div>
 
+
       <div>
-        <label for="minWords">Minimum words</label>
+        <label for="minWords">
+          Minimum words
+        </label>
+
         <input
           type="number"
           id="minWords"
@@ -268,46 +550,136 @@
 
     </div>
 
+
     <div class="checkbox-row">
-      <input type="checkbox" id="hideShort" checked>
-      <label for="hideShort">Ignore very short sentences</label>
+
+      <input
+        type="checkbox"
+        id="hideShort"
+        checked
+      >
+
+      <label for="hideShort">
+        Ignore very short sentences
+      </label>
+
     </div>
 
+
     <div style="margin-top:15px;">
-      <label for="extras">Extra instructions</label>
+
+      <label for="extras">
+        Extra instructions
+      </label>
+
       <textarea
         id="extras"
         placeholder="Optional instructions for Teacher Pal..."
       ></textarea>
+
     </div>
 
+
     <div class="button-row">
-      <button id="toggleBtn">Start Listening</button>
-      <button id="pauseBtn">Pause</button>
-      <button id="clearBtn">Clear</button>
+
+      <button id="toggleBtn">
+        Start Listening
+      </button>
+
+      <button id="pauseBtn">
+        Pause
+      </button>
+
+      <button id="clearBtn">
+        Clear
+      </button>
+
     </div>
+
 
     <div id="status" class="status">
       Voice engine ready.
     </div>
+
   </div>
 
 
-  <div class="panel">
-    <h2>Live Transcript</h2>
+  <!-- ======================================================
+       SIDE-BY-SIDE LIVE STREAM + CORRECTIONS
+       ====================================================== -->
 
-    <div id="liveTranscript" class="transcript">
-      Nothing heard yet.
+  <div class="coach-grid">
+
+
+    <!-- ====================================================
+         LEFT: LIVE STREAM
+         ==================================================== -->
+
+    <div class="coach-panel">
+
+      <div class="coach-header">
+
+        <h2>
+          Live Stream
+        </h2>
+
+        <span
+          id="liveBadge"
+          class="live-badge"
+        >
+          Offline
+        </span>
+
+      </div>
+
+
+      <div class="coach-content">
+
+        <div
+          id="liveTranscript"
+          class="live-transcript"
+        >
+
+          <span class="live-placeholder">
+            Start listening to hear the student's speech here...
+          </span>
+
+        </div>
+
+      </div>
+
     </div>
-  </div>
 
 
-  <div class="panel">
-    <h2>Coaching</h2>
+    <!-- ====================================================
+         RIGHT: CORRECTIONS
+         ==================================================== -->
 
-    <div id="results">
-      Your corrections and suggestions will appear here.
+    <div class="coach-panel">
+
+      <div class="coach-header">
+
+        <h2>
+          Corrections
+        </h2>
+
+      </div>
+
+
+      <div
+        id="results"
+        class="coach-content"
+      >
+
+        <div class="small">
+          Corrections and suggestions will appear here.
+        </div>
+
+      </div>
+
     </div>
+
+
   </div>
 
 </div>
@@ -315,24 +687,39 @@
 
 <script>
 
+
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
 const WORKER =
   'https://blue-base-6bdc.haroldderamos28.workers.dev';
 
 
-// ------------------------------------------------------------
+// ============================================================
 // DOM
-// ------------------------------------------------------------
+// ============================================================
 
-const toggleBtn = document.getElementById('toggleBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const clearBtn = document.getElementById('clearBtn');
+const toggleBtn =
+  document.getElementById('toggleBtn');
 
-const statusEl = document.getElementById('status');
+const pauseBtn =
+  document.getElementById('pauseBtn');
+
+const clearBtn =
+  document.getElementById('clearBtn');
+
+const statusEl =
+  document.getElementById('status');
+
 const liveTranscriptEl =
   document.getElementById('liveTranscript');
 
 const resultsEl =
   document.getElementById('results');
+
+const liveBadge =
+  document.getElementById('liveBadge');
 
 const modeEl =
   document.getElementById('mode');
@@ -353,89 +740,139 @@ const extrasEl =
   document.getElementById('extras');
 
 
-// ------------------------------------------------------------
+// ============================================================
 // STATE
-// ------------------------------------------------------------
+// ============================================================
 
 let socket = null;
+
 let recorder = null;
+
 let stream = null;
 
 let running = false;
+
 let stopping = false;
+
 let paused = false;
 
 let keepAliveTimer = null;
 
-let lastTranscript = '';
 let lastAnalyzedTranscript = '';
 
 
-// ------------------------------------------------------------
+// ============================================================
 // STATUS
-// ------------------------------------------------------------
+// ============================================================
 
 function setStatus(message) {
-  statusEl.textContent = message;
+
+  statusEl.textContent =
+    message;
+
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
+// LIVE BADGE
+// ============================================================
+
+function setLiveBadge(active) {
+
+  if (active) {
+
+    liveBadge.textContent =
+      'LIVE';
+
+    liveBadge.classList.add(
+      'active'
+    );
+
+  } else {
+
+    liveBadge.textContent =
+      'Offline';
+
+    liveBadge.classList.remove(
+      'active'
+    );
+
+  }
+
+}
+
+
+// ============================================================
 // KEEP ALIVE
-// ------------------------------------------------------------
+// ============================================================
 
 function startKeepAlive() {
 
   stopKeepAlive();
 
-  keepAliveTimer = setInterval(() => {
+  keepAliveTimer =
+    setInterval(() => {
 
-    if (
-      socket &&
-      socket.readyState === WebSocket.OPEN
-    ) {
+      if (
+        socket &&
+        socket.readyState ===
+          WebSocket.OPEN
+      ) {
 
-      try {
-        socket.send(
-          JSON.stringify({
-            type: 'KeepAlive'
-          })
-        );
-      } catch (error) {
-        console.error(
-          'KeepAlive error:',
-          error
-        );
+        try {
+
+          socket.send(
+            JSON.stringify({
+              type: 'KeepAlive'
+            })
+          );
+
+        } catch (error) {
+
+          console.error(
+            'KeepAlive error:',
+            error
+          );
+
+        }
+
       }
 
-    }
+    }, 5000);
 
-  }, 5000);
 }
 
 
 function stopKeepAlive() {
 
   if (keepAliveTimer) {
-    clearInterval(keepAliveTimer);
-    keepAliveTimer = null;
+
+    clearInterval(
+      keepAliveTimer
+    );
+
+    keepAliveTimer =
+      null;
+
   }
 
 }
 
 
-// ------------------------------------------------------------
-// GET TEMPORARY DEEPGRAM TOKEN
-// ------------------------------------------------------------
+// ============================================================
+// GET DEEPGRAM TOKEN
+// ============================================================
 
 async function getDeepgramToken() {
 
-  const response = await fetch(
-    `${WORKER}/token`,
-    {
-      method: 'POST'
-    }
-  );
+  const response =
+    await fetch(
+      `${WORKER}/token`,
+      {
+        method: 'POST'
+      }
+    );
+
 
   if (!response.ok) {
 
@@ -445,21 +882,28 @@ async function getDeepgramToken() {
 
   }
 
-  const data = await response.json();
+
+  const data =
+    await response.json();
+
 
   if (!data.token) {
+
     throw new Error(
-      'Deepgram token was not returned by the Worker.'
+      'No Deepgram token received.'
     );
+
   }
 
+
   return data.token;
+
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // START LISTENING
-// ------------------------------------------------------------
+// ============================================================
 
 async function startListening() {
 
@@ -467,8 +911,13 @@ async function startListening() {
     return;
   }
 
-  stopping = false;
-  paused = false;
+
+  stopping =
+    false;
+
+  paused =
+    false;
+
 
   try {
 
@@ -476,30 +925,41 @@ async function startListening() {
       'Connecting to voice engine...'
     );
 
-    toggleBtn.disabled = true;
+
+    toggleBtn.disabled =
+      true;
+
 
     // --------------------------------------------------------
-    // Get microphone
+    // Microphone
     // --------------------------------------------------------
 
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });
+    stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        audio: {
+
+          echoCancellation:
+            true,
+
+          noiseSuppression:
+            true,
+
+          autoGainControl:
+            true
+
+        }
+
+      });
+
 
     // --------------------------------------------------------
-    // Get temporary Deepgram token
+    // Deepgram token
     // --------------------------------------------------------
 
     const token =
       await getDeepgramToken();
 
-    console.log(
-      'Deepgram temporary token received.'
-    );
 
     // --------------------------------------------------------
     // Language
@@ -508,8 +968,9 @@ async function startListening() {
     const targetLang =
       langEl.value;
 
+
     // --------------------------------------------------------
-    // Deepgram WebSocket URL
+    // Deepgram WebSocket
     // --------------------------------------------------------
 
     const deepgramUrl =
@@ -520,223 +981,285 @@ async function startListening() {
       '&interim_results=true' +
       '&utterance_end_ms=1000';
 
-    console.log(
-      'Connecting to Deepgram:',
-      deepgramUrl
-    );
 
-    // --------------------------------------------------------
-    // IMPORTANT:
-    // Temporary JWT token uses BEARER authentication.
-    // --------------------------------------------------------
-
-    socket = new WebSocket(
-      deepgramUrl,
-      [
-        'bearer',
-        token
-      ]
-    );
-
-
-    // --------------------------------------------------------
-    // WebSocket OPEN
-    // --------------------------------------------------------
-
-    socket.onopen = () => {
-
-      console.log(
-        'Deepgram WebSocket connected.'
+    socket =
+      new WebSocket(
+        deepgramUrl,
+        [
+          'bearer',
+          token
+        ]
       );
 
-      running = true;
-      stopping = false;
-
-      toggleBtn.disabled = false;
-      toggleBtn.textContent =
-        'Stop Listening';
-
-      pauseBtn.style.display =
-        'inline-block';
-
-      setStatus(
-        'Listening...'
-      );
-
-      startKeepAlive();
-
-      startRecorder();
-    };
-
 
     // --------------------------------------------------------
-    // WebSocket MESSAGE
+    // OPEN
     // --------------------------------------------------------
 
-    socket.onmessage = (event) => {
-
-      try {
-
-        const data =
-          JSON.parse(event.data);
+    socket.onopen =
+      () => {
 
         console.log(
-          'Deepgram message:',
-          data
+          'Deepgram connected.'
         );
 
-        if (
-          data.type === 'Results'
-        ) {
 
-          const transcript =
-            data.channel
-              ?.alternatives
-              ?. [0]
-              ?.transcript || '';
+        running =
+          true;
 
-          if (transcript.trim()) {
 
-            liveTranscriptEl.textContent =
-              transcript;
+        stopping =
+          false;
 
-            processTranscript(
-              transcript,
-              data.is_final === true
+
+        toggleBtn.disabled =
+          false;
+
+
+        toggleBtn.textContent =
+          'Stop Listening';
+
+
+        pauseBtn.style.display =
+          'inline-block';
+
+
+        setStatus(
+          'Listening...'
+        );
+
+
+        setLiveBadge(
+          true
+        );
+
+
+        startKeepAlive();
+
+
+        startRecorder();
+
+      };
+
+
+    // --------------------------------------------------------
+    // MESSAGE
+    // --------------------------------------------------------
+
+    socket.onmessage =
+      (event) => {
+
+        try {
+
+          const data =
+            JSON.parse(
+              event.data
             );
+
+
+          if (
+            data.type ===
+            'Results'
+          ) {
+
+            const transcript =
+              data.channel
+                ?.alternatives
+                ?. [0]
+                ?.transcript ||
+              '';
+
+
+            if (
+              transcript.trim()
+            ) {
+
+              liveTranscriptEl.textContent =
+                transcript;
+
+
+              processTranscript(
+                transcript,
+                data.is_final ===
+                  true
+              );
+
+            }
 
           }
 
+        } catch (error) {
+
+          console.error(
+            'Deepgram message error:',
+            error
+          );
+
         }
 
-      } catch (error) {
+      };
+
+
+    // --------------------------------------------------------
+    // ERROR
+    // --------------------------------------------------------
+
+    socket.onerror =
+      (error) => {
 
         console.error(
-          'Deepgram message error:',
+          'Deepgram error:',
           error
         );
 
-      }
-
-    };
-
-
-    // --------------------------------------------------------
-    // WebSocket ERROR
-    // --------------------------------------------------------
-
-    socket.onerror = (error) => {
-
-      console.error(
-        'Deepgram WebSocket error:',
-        error
-      );
-
-      setStatus(
-        'Deepgram connection error. Check the browser console.'
-      );
-
-    };
-
-
-    // --------------------------------------------------------
-    // WebSocket CLOSE
-    // --------------------------------------------------------
-
-    socket.onclose = (event) => {
-
-      console.error(
-        'Deepgram WebSocket closed:',
-        event.code,
-        event.reason
-      );
-
-      stopKeepAlive();
-
-      if (!stopping) {
-
-        running = false;
-
-        if (recorder) {
-
-          try {
-            recorder.stop();
-          } catch (e) {}
-
-          recorder = null;
-        }
-
-        if (stream) {
-
-          stream
-            .getTracks()
-            .forEach(track => {
-
-              try {
-                track.stop();
-              } catch (e) {}
-
-            });
-
-          stream = null;
-        }
-
-        toggleBtn.disabled = false;
-
-        toggleBtn.textContent =
-          'Start Listening';
-
-        pauseBtn.style.display =
-          'none';
 
         setStatus(
-          `Voice engine disconnected (${event.code})` +
-          (
-            event.reason
-              ? `: ${event.reason}`
-              : ''
-          )
+          'Deepgram connection error.'
         );
 
-      }
+      };
 
-    };
+
+    // --------------------------------------------------------
+    // CLOSE
+    // --------------------------------------------------------
+
+    socket.onclose =
+      (event) => {
+
+        console.error(
+          'Deepgram closed:',
+          event.code,
+          event.reason
+        );
+
+
+        stopKeepAlive();
+
+
+        setLiveBadge(
+          false
+        );
+
+
+        if (!stopping) {
+
+          running =
+            false;
+
+
+          if (recorder) {
+
+            try {
+              recorder.stop();
+            } catch (e) {}
+
+            recorder =
+              null;
+
+          }
+
+
+          if (stream) {
+
+            stream
+              .getTracks()
+              .forEach(
+                track => {
+
+                  try {
+                    track.stop();
+                  } catch (e) {}
+
+                }
+              );
+
+            stream =
+              null;
+
+          }
+
+
+          toggleBtn.disabled =
+            false;
+
+
+          toggleBtn.textContent =
+            'Start Listening';
+
+
+          pauseBtn.style.display =
+            'none';
+
+
+          setStatus(
+            `Voice engine disconnected (${event.code})` +
+            (
+              event.reason
+                ? `: ${event.reason}`
+                : ''
+            )
+          );
+
+        }
+
+      };
 
 
   } catch (error) {
 
     console.error(
-      'Start listening error:',
+      'Start error:',
       error
     );
 
-    running = false;
-    stopping = true;
+
+    running =
+      false;
+
+    stopping =
+      true;
+
 
     stopKeepAlive();
+
 
     if (stream) {
 
       stream
         .getTracks()
-        .forEach(track => {
+        .forEach(
+          track => {
 
-          try {
-            track.stop();
-          } catch (e) {}
+            try {
+              track.stop();
+            } catch (e) {}
 
-        });
+          }
+        );
 
-      stream = null;
+      stream =
+        null;
+
     }
 
-    toggleBtn.disabled = false;
+
+    toggleBtn.disabled =
+      false;
+
 
     toggleBtn.textContent =
       'Start Listening';
 
+
     pauseBtn.style.display =
       'none';
+
+
+    setLiveBadge(
+      false
+    );
+
 
     setStatus(
       `Error: ${error.message}`
@@ -747,20 +1270,24 @@ async function startListening() {
 }
 
 
-// ------------------------------------------------------------
-// MEDIA RECORDER
-// ------------------------------------------------------------
+// ============================================================
+// RECORDER
+// ============================================================
 
 function startRecorder() {
 
   if (!stream) {
+
     throw new Error(
-      'No microphone stream available.'
+      'No microphone stream.'
     );
+
   }
+
 
   let mimeType =
     'audio/webm;codecs=opus';
+
 
   if (
     !MediaRecorder.isTypeSupported(
@@ -773,17 +1300,6 @@ function startRecorder() {
 
   }
 
-  if (
-    !MediaRecorder.isTypeSupported(
-      mimeType
-    )
-  ) {
-
-    throw new Error(
-      'Your browser does not support the required audio format.'
-    );
-
-  }
 
   recorder =
     new MediaRecorder(
@@ -801,7 +1317,8 @@ function startRecorder() {
         event.data &&
         event.data.size > 0 &&
         socket &&
-        socket.readyState === WebSocket.OPEN &&
+        socket.readyState ===
+          WebSocket.OPEN &&
         !paused
       ) {
 
@@ -810,7 +1327,10 @@ function startRecorder() {
           const buffer =
             await event.data.arrayBuffer();
 
-          socket.send(buffer);
+
+          socket.send(
+            buffer
+          );
 
         } catch (error) {
 
@@ -826,39 +1346,16 @@ function startRecorder() {
     };
 
 
-  recorder.onerror =
-    (event) => {
-
-      console.error(
-        'Recorder error:',
-        event
-      );
-
-    };
-
-
-  recorder.onstop =
-    () => {
-
-      console.log(
-        'Recorder stopped.'
-      );
-
-    };
-
-
-  recorder.start(250);
-
-  console.log(
-    'Recorder started.'
+  recorder.start(
+    250
   );
 
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // PROCESS TRANSCRIPT
-// ------------------------------------------------------------
+// ============================================================
 
 function processTranscript(
   transcript,
@@ -868,37 +1365,38 @@ function processTranscript(
   const clean =
     transcript.trim();
 
+
   if (!clean) {
     return;
   }
 
-  lastTranscript = clean;
 
   if (!isFinal) {
     return;
   }
+
 
   const words =
     clean
       .split(/\s+/)
       .filter(Boolean);
 
+
   const minimum =
-    Number(minWordsEl.value) || 1;
+    Number(
+      minWordsEl.value
+    ) || 1;
+
 
   if (
     hideShortEl.checked &&
     words.length < minimum
   ) {
 
-    console.log(
-      'Ignoring short sentence:',
-      clean
-    );
-
     return;
 
   }
+
 
   if (
     clean.toLowerCase() ===
@@ -909,38 +1407,56 @@ function processTranscript(
 
   }
 
+
   lastAnalyzedTranscript =
     clean;
 
-  analyzeSentence(clean);
+
+  analyzeSentence(
+    clean
+  );
+
 }
 
 
-// ------------------------------------------------------------
-// ANALYZE SENTENCE
-// ------------------------------------------------------------
+// ============================================================
+// ANALYZE
+// ============================================================
 
 async function analyzeSentence(
   sentence
 ) {
 
   const item =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   item.className =
-    'item';
+    'correction-item';
+
 
   item.innerHTML = `
-    <div class="original">
+
+    <div class="original-label">
+      Student said
+    </div>
+
+    <div class="original-text">
       ${escapeHtml(sentence)}
     </div>
 
-    <div class="small">
+    <div class="analyzing">
       Analyzing...
     </div>
+
   `;
 
-  resultsEl.prepend(item);
+
+  resultsEl.prepend(
+    item
+  );
 
 
   try {
@@ -949,36 +1465,65 @@ async function analyzeSentence(
       await fetch(
         WORKER,
         {
-          method: 'POST',
+
+          method:
+            'POST',
 
           headers: {
             'Content-Type':
               'application/json'
           },
 
-          body: JSON.stringify({
-            text: sentence,
+          body:
+            JSON.stringify({
 
-            mode:
-              modeEl.value,
+              text:
+                sentence,
 
-            level:
-              levelEl.value,
+              mode:
+                modeEl.value,
 
-            targetLanguage:
-              langEl.value,
+              level:
+                levelEl.value,
 
-            extras:
-              extrasEl.value
-          })
+              targetLanguage:
+                langEl.value,
+
+              extras:
+                extrasEl.value
+
+            })
+
         }
       );
 
 
     if (!response.ok) {
 
+      let errorDetails =
+        `Analysis failed: ${response.status}`;
+
+
+      try {
+
+        const errorData =
+          await response.json();
+
+
+        if (
+          errorData.details
+        ) {
+
+          errorDetails +=
+            ` — ${errorData.details}`;
+
+        }
+
+      } catch (e) {}
+
+
       throw new Error(
-        `Analysis failed: ${response.status}`
+        errorDetails
       );
 
     }
@@ -986,11 +1531,6 @@ async function analyzeSentence(
 
     const data =
       await response.json();
-
-    console.log(
-      'AI analysis:',
-      data
-    );
 
 
     renderAnalysis(
@@ -1007,14 +1547,21 @@ async function analyzeSentence(
       error
     );
 
+
     item.innerHTML = `
-      <div class="original">
+
+      <div class="original-label">
+        Student said
+      </div>
+
+      <div class="original-text">
         ${escapeHtml(sentence)}
       </div>
 
-      <div class="warning">
-        Analysis error: ${escapeHtml(error.message)}
+      <div class="error">
+        ${escapeHtml(error.message)}
       </div>
+
     `;
 
   }
@@ -1022,9 +1569,9 @@ async function analyzeSentence(
 }
 
 
-// ------------------------------------------------------------
-// RENDER ANALYSIS
-// ------------------------------------------------------------
+// ============================================================
+// RENDER CORRECTION
+// ============================================================
 
 function renderAnalysis(
   item,
@@ -1034,40 +1581,56 @@ function renderAnalysis(
 
   const corrected =
     data.corrected ||
-    data.natural ||
-    data.suggestion ||
     '';
+
 
   const explanation =
     data.explanation ||
-    data.reason ||
     '';
+
 
   const translation =
     data.translation ||
     '';
 
+
   const alternatives =
-    data.alternatives ||
-    [];
+    Array.isArray(
+      data.alternatives
+    )
+      ? data.alternatives
+      : [];
 
 
   let html = `
-    <div class="original">
+
+    <div class="original-label">
+      Student said
+    </div>
+
+    <div class="original-text">
       ${escapeHtml(sentence)}
     </div>
+
   `;
 
 
   if (corrected) {
 
     html += `
-      <div>
-        <strong>Suggested:</strong>
-        <span class="good">
-          ${escapeHtml(corrected)}
-        </span>
+
+      <div class="suggestion">
+
+        <div class="suggestion-label">
+          Suggested
+        </div>
+
+        ${escapeHtml(
+          corrected
+        )}
+
       </div>
+
     `;
 
   }
@@ -1076,10 +1639,19 @@ function renderAnalysis(
   if (explanation) {
 
     html += `
-      <div class="analysis">
-        <strong>Why:</strong>
-        ${escapeHtml(explanation)}
+
+      <div class="why">
+
+        <div class="why-label">
+          Why
+        </div>
+
+        ${escapeHtml(
+          explanation
+        )}
+
       </div>
+
     `;
 
   }
@@ -1088,48 +1660,53 @@ function renderAnalysis(
   if (translation) {
 
     html += `
+
       <div class="translation">
-        <strong>Translation:</strong><br>
-        ${escapeHtml(translation)}
+
+        <div class="translation-label">
+          Translation
+        </div>
+
+        ${escapeHtml(
+          translation
+        )}
+
       </div>
+
     `;
 
   }
 
 
   if (
-    Array.isArray(alternatives) &&
     alternatives.length
   ) {
 
     html += `
-      <div style="margin-top:10px;">
-        <strong>Alternatives:</strong>
-        <ul>
-          ${alternatives
-            .map(
-              x =>
-                `<li>${escapeHtml(String(x))}</li>`
-            )
-            .join('')}
+
+      <div>
+
+        <div class="alternative-label">
+          Alternatives
+        </div>
+
+        <ul class="alternatives">
+
+          ${
+            alternatives
+              .map(
+                alternative =>
+                  `<li>${escapeHtml(
+                    alternative
+                  )}</li>`
+              )
+              .join('')
+          }
+
         </ul>
+
       </div>
-    `;
 
-  }
-
-
-  if (
-    !corrected &&
-    !explanation &&
-    !translation &&
-    !alternatives.length
-  ) {
-
-    html += `
-      <div class="small">
-        No additional correction needed.
-      </div>
     `;
 
   }
@@ -1141,15 +1718,21 @@ function renderAnalysis(
 }
 
 
-// ------------------------------------------------------------
-// STOP LISTENING
-// ------------------------------------------------------------
+// ============================================================
+// STOP
+// ============================================================
 
 function stopListening() {
 
-  stopping = true;
-  running = false;
-  paused = false;
+  stopping =
+    true;
+
+  running =
+    false;
+
+  paused =
+    false;
+
 
   stopKeepAlive();
 
@@ -1160,7 +1743,8 @@ function stopListening() {
       recorder.stop();
     } catch (e) {}
 
-    recorder = null;
+    recorder =
+      null;
 
   }
 
@@ -1176,7 +1760,8 @@ function stopListening() {
 
         socket.send(
           JSON.stringify({
-            type: 'CloseStream'
+            type:
+              'CloseStream'
           })
         );
 
@@ -1189,7 +1774,9 @@ function stopListening() {
       socket.close();
     } catch (e) {}
 
-    socket = null;
+
+    socket =
+      null;
 
   }
 
@@ -1198,29 +1785,39 @@ function stopListening() {
 
     stream
       .getTracks()
-      .forEach(track => {
+      .forEach(
+        track => {
 
-        try {
-          track.stop();
-        } catch (e) {}
+          try {
+            track.stop();
+          } catch (e) {}
 
-      });
+        }
+      );
 
-    stream = null;
+
+    stream =
+      null;
 
   }
 
 
-  toggleBtn.disabled = false;
+  toggleBtn.disabled =
+    false;
+
 
   toggleBtn.textContent =
     'Start Listening';
 
+
   pauseBtn.style.display =
     'none';
 
-  pauseBtn.textContent =
-    'Pause';
+
+  setLiveBadge(
+    false
+  );
+
 
   setStatus(
     'Voice engine stopped.'
@@ -1229,9 +1826,9 @@ function stopListening() {
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // PAUSE
-// ------------------------------------------------------------
+// ============================================================
 
 function togglePause() {
 
@@ -1239,13 +1836,16 @@ function togglePause() {
     return;
   }
 
+
   paused =
     !paused;
+
 
   if (paused) {
 
     pauseBtn.textContent =
       'Resume';
+
 
     setStatus(
       'Paused.'
@@ -1256,6 +1856,7 @@ function togglePause() {
     pauseBtn.textContent =
       'Pause';
 
+
     setStatus(
       'Listening...'
     );
@@ -1265,52 +1866,92 @@ function togglePause() {
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // CLEAR
-// ------------------------------------------------------------
+// ============================================================
 
 function clearResults() {
 
-  resultsEl.innerHTML =
-    'Your corrections and suggestions will appear here.';
+  resultsEl.innerHTML = `
 
-  liveTranscriptEl.textContent =
-    'Nothing heard yet.';
+    <div class="small">
+      Corrections and suggestions will appear here.
+    </div>
 
-  lastTranscript = '';
-  lastAnalyzedTranscript = '';
-
-}
+  `;
 
 
-// ------------------------------------------------------------
-// HTML ESCAPE
-// ------------------------------------------------------------
+  liveTranscriptEl.innerHTML = `
 
-function escapeHtml(value) {
+    <span class="live-placeholder">
+      Start listening to hear the student's speech here...
+    </span>
 
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  `;
+
+
+  lastAnalyzedTranscript =
+    '';
 
 }
 
 
-// ------------------------------------------------------------
-// BUTTON EVENTS
-// ------------------------------------------------------------
+// ============================================================
+// ESCAPE HTML
+// ============================================================
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value
+  )
+
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+
+    .replace(
+      /</g,
+      '&lt;'
+    )
+
+    .replace(
+      />/g,
+      '&gt;'
+    )
+
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+
+    .replace(
+      /'/g,
+      '&#039;'
+    );
+
+}
+
+
+// ============================================================
+// EVENTS
+// ============================================================
 
 toggleBtn.addEventListener(
   'click',
   () => {
 
     if (running) {
+
       stopListening();
+
     } else {
+
       startListening();
+
     }
 
   }
@@ -1329,17 +1970,20 @@ clearBtn.addEventListener(
 );
 
 
-// ------------------------------------------------------------
+// ============================================================
 // CLEANUP
-// ------------------------------------------------------------
+// ============================================================
 
 window.addEventListener(
   'beforeunload',
   () => {
 
-    stopping = true;
+    stopping =
+      true;
+
 
     stopKeepAlive();
+
 
     if (recorder) {
 
@@ -1349,6 +1993,7 @@ window.addEventListener(
 
     }
 
+
     if (socket) {
 
       try {
@@ -1357,17 +2002,20 @@ window.addEventListener(
 
     }
 
+
     if (stream) {
 
       stream
         .getTracks()
-        .forEach(track => {
+        .forEach(
+          track => {
 
-          try {
-            track.stop();
-          } catch (e) {}
+            try {
+              track.stop();
+            } catch (e) {}
 
-        });
+          }
+        );
 
     }
 
@@ -1378,3 +2026,4 @@ window.addEventListener(
 
 </body>
 </html>
+```
