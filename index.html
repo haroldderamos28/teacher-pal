@@ -138,96 +138,92 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 26</div>
+  <div class="ver">version 27</div>
 
 <script>
   const WORKER = 'https://workers.dev';
 
-  // Standard utility function to look up elements safely by ID
-  const $ = (id) => document.getElementById(id);
-  
-  const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
-  const translateLevelEl = $('translateLevel'), minWordsEl = $('minWords'), hideShortEl = $('hideShort'), sourceEl = $('source');
-  const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
-  const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
+  // Executing inside the safe DOM lifecycle listener prevents structural crashes
+  document.addEventListener('DOMContentLoaded', () => {
+    const $ = (id) => document.getElementById(id);
+    
+    const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
+    const translateLevelEl = $('translateLevel'), minWordsEl = $('minWords'), hideShortEl = $('hideShort'), sourceEl = $('source');
+    const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
+    const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
-  function isTranslating() { return langEl.value !== 'en'; }
+    function isTranslating() { return langEl.value !== 'en'; }
 
-  function updateControlVisibility() {
-    const t = isTranslating();
-    englishControlsEl.style.display = t ? 'none' : '';
-    translateControlsEl.style.display = t ? '' : 'none';
-    $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
-    $('colRight').textContent = t ? 'English translation' : 'Feedback';
-  }
-  langEl.addEventListener('change', updateControlVisibility);
-
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, keepAliveTimer = null;
-
-  function startKeepAlive() {
-    clearInterval(keepAliveTimer);
-    keepAliveTimer = setInterval(() => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'KeepAlive' }));
-      }
-    }, 5000);
-  }
-  function stopKeepAlive() { clearInterval(keepAliveTimer); }
-
-  try {
-    modeEl.value = localStorage.getItem('tp_mode') || 'natural';
-    levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
-    extrasEl.checked = localStorage.getItem('tp_extras') === '1';
-  } catch (e) {}
-  modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
-  levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
-  extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
-
-  toggleBtn.addEventListener('click', async () => {
-    if (running) {
-      stopListening();
-      return;
+    function updateControlVisibility() {
+      const t = isTranslating();
+      englishControlsEl.style.display = t ? 'none' : '';
+      translateControlsEl.style.display = t ? '' : 'none';
+      $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
+      $('colRight').textContent = t ? 'English translation' : 'Feedback';
     }
+    langEl.addEventListener('change', updateControlVisibility);
 
-    statusEl.textContent = 'Obtaining access token...';
+    let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, keepAliveTimer = null;
+
+    function startKeepAlive() {
+      clearInterval(keepAliveTimer);
+      keepAliveTimer = setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'KeepAlive' }));
+        }
+      }, 5000);
+    }
+    function stopKeepAlive() { clearInterval(keepAliveTimer); }
+
     try {
-      const tokenRes = await fetch(`${WORKER}/token`, { method: 'POST' });
-      const tokenData = await tokenRes.json();
-      if (tokenData.error) throw new Error(tokenData.error);
+      modeEl.value = localStorage.getItem('tp_mode') || 'natural';
+      levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
+      extrasEl.checked = localStorage.getItem('tp_extras') === '1';
+    } catch (e) {}
+    modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
+    levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
+    extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
 
-      statusEl.textContent = 'Connecting to voice engine...';
-      const targetLang = langEl.value;
+    toggleBtn.addEventListener('click', async () => {
+      if (running) {
+        stopListening();
+        return;
+      }
 
-      socket = new WebSocket(`wss://://deepgram.com{targetLang}&smart_formatting=true&interim_results=true&utterance_end_ms=1000`, [
-        'token',
-        tokenData.token,
-      ]);
+      statusEl.textContent = 'Obtaining access token...';
+      try {
+        const tokenRes = await fetch(`${WORKER}/token`, { method: 'POST' });
+        const tokenData = await tokenRes.json();
+        if (tokenData.error) throw new Error(tokenData.error);
 
-      socket.onopen = async () => {
-        statusEl.textContent = 'Voice engine active. Accessing microphone...';
-        startKeepAlive();
+        statusEl.textContent = 'Connecting to voice engine...';
+        const targetLang = langEl.value;
 
-        try {
-          const audioSource = sourceEl.value;
-          if (audioSource === 'mic') {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          } else {
-            displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-            const audioTracks = displayStream.getAudioTracks();
-            if (audioTracks.length === 0) throw new Error("No system audio selected.");
-            stream = new MediaStream(audioTracks);
-          }
+        socket = new WebSocket(`wss://://deepgram.com{targetLang}&smart_formatting=true&interim_results=true&utterance_end_ms=1000`, [
+          'token',
+          tokenData.token,
+        ]);
 
-          recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-          recorder.ondataavailable = (e) => {
-            if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN && !paused) {
-              socket.send(e.data);
+        socket.onopen = async () => {
+          statusEl.textContent = 'Voice engine active. Accessing microphone...';
+          startKeepAlive();
+
+          try {
+            const audioSource = sourceEl.value;
+            if (audioSource === 'mic') {
+              stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } else {
+              displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+              const audioTracks = displayStream.getAudioTracks();
+              if (audioTracks.length === 0) throw new Error("No system audio selected.");
+              stream = new MediaStream(audioTracks);
             }
-          };
-          recorder.start(250);
 
-          running = true;
-          toggleBtn.textContent = 'Stop Listening';
-          pauseBtn.style.display = '';
-          statusEl.textContent = 'Listening actively...';
-        } catch (err) {
+            recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            recorder.ondataavailable = (e) => {
+              if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN && !paused) {
+                socket.send(e.data);
+              }
+            };
+            recorder.start(250);
+
