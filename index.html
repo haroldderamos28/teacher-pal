@@ -154,6 +154,7 @@ let paused = false;
 let pendingPauseChunk = false;
 let keepAliveTimer = null;
 let finalTranscript = "";
+let reconnecting = false; // true while we deliberately close+reopen the socket (e.g. language switch)
 
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -317,11 +318,30 @@ async function connectSocket() {
 
   socket.onclose = function (event) {
     console.log("Deepgram closed:", event.code, event.reason);
-    // While deliberately paused, a closed/expired connection is expected — Resume
-    // will quietly reconnect without touching the mic/tab-audio permission.
-    if (running && !paused) setStatus(`Voice engine disconnected (${event.code}).`);
+    // While deliberately paused or mid-reconnect (e.g. switching language), a closed/expired
+    // connection is expected, not an error.
+    if (running && !paused && !reconnecting) setStatus(`Voice engine disconnected (${event.code}).`);
   };
 }
+
+// Changing the source language mid-session needs a different Deepgram model (nova-2 vs
+// nova-3), which means a fresh connection. The mic/tab-audio stream and recorder are
+// left completely alone, so there's no new permission prompt.
+languageEl.addEventListener("change", async function () {
+  if (!running || paused) return; // not listening yet (or paused) — the next connect will pick this up
+  reconnecting = true;
+  finalTranscript = "";
+  renderLiveTranscript("", "");
+  setStatus(isTranslating() ? "Switching to " + languageEl.options[languageEl.selectedIndex].text + "..." : "Switching to English...");
+  if (socket) { try { socket.close(); } catch {} socket = null; }
+  try {
+    await connectSocket();
+  } catch (error) {
+    setStatus(error.message || "Could not switch language.");
+  } finally {
+    reconnecting = false;
+  }
+});
 
 function startRecorder() {
   if (!stream || !socket) return;
