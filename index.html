@@ -140,7 +140,11 @@
 
 <script>
 const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
-const DEEPGRAM_LANGUAGE = "en-US";
+
+// When "Support language" is set to anything but English, we treat it as the student's
+// own language: Deepgram transcribes in THAT language, and the Worker translates it to
+// English for the teacher instead of correcting English grammar.
+function isTranslating() { return languageEl.value !== "en"; }
 
 let socket = null;
 let recorder = null;
@@ -227,10 +231,16 @@ async function connectSocket() {
   const tokenData = await tokenResponse.json();
   if (!tokenData.token) throw new Error("Deepgram token was not returned.");
 
+  // nova-3 is the most accurate model, but only for English. For any other language
+  // (translation mode) we need nova-2, which covers the full language list below.
+  const translating = isTranslating();
+  const sttModel = translating ? "nova-2" : "nova-3";
+  const sttLanguage = translating ? languageEl.value : "en-US";
+
   const deepgramUrl =
     "wss://api.deepgram.com/v1/listen" +
-    "?model=nova-3" +
-    "&language=" + encodeURIComponent(DEEPGRAM_LANGUAGE) +
+    "?model=" + sttModel +
+    "&language=" + encodeURIComponent(sttLanguage) +
     "&smart_format=true" +
     "&interim_results=true" +
     "&endpointing=500" +
@@ -364,9 +374,14 @@ function renderLiveTranscript(finalText, interimText) {
 }
 
 async function analyzeSentence(text) {
+  // Capture the mode at call time so a dropdown change while this request is still
+  // in flight doesn't change how its own result gets rendered.
+  const translating = isTranslating();
+
   const card = document.createElement("div");
   card.className = "correction-card";
-  card.innerHTML = `<div class="thinking">Analyzing...</div>`;
+  card.dataset.translating = translating ? "1" : "0";
+  card.innerHTML = `<div class="thinking">${translating ? "Translating..." : "Analyzing..."}</div>`;
 
   if (results.children.length === 1 && results.firstElementChild.classList.contains("empty")) {
     results.innerHTML = "";
@@ -383,6 +398,7 @@ async function analyzeSentence(text) {
         level: levelEl.value,
         language: languageEl.value,
         extras: extrasEl.checked,
+        translate: translating,
       }),
     });
 
@@ -432,6 +448,7 @@ async function analyzeSentence(text) {
 const ALL_LABELS = ["CORRECTED:", "NATURAL:", "WHY:", "ALTERNATIVES:", "VOCAB:"];
 
 function renderCorrection(card, generated) {
+  const translating = card.dataset.translating === "1";
   const corrected = extractLine(generated, "CORRECTED:");
   const natural = extractLine(generated, "NATURAL:");
   const why = extractLine(generated, "WHY:");
@@ -440,7 +457,7 @@ function renderCorrection(card, generated) {
 
   if (!corrected && !natural && !why && !alternatives && !vocab) {
     card.innerHTML = `
-      <div class="correction-label">Correction</div>
+      <div class="correction-label">${translating ? "Translation" : "Correction"}</div>
       <div class="natural">${escapeHtml(generated.trim())}</div>
     `;
     return;
@@ -448,12 +465,12 @@ function renderCorrection(card, generated) {
 
   card.innerHTML = `
     ${corrected ? `
-      <div class="correction-label">Corrected</div>
+      <div class="correction-label">${translating ? "Translation" : "Corrected"}</div>
       <div class="corrected">${escapeHtml(corrected)}</div>
     ` : ""}
 
     ${natural ? `
-      <div class="correction-label" style="margin-top:12px;">More natural</div>
+      <div class="correction-label" style="margin-top:12px;">${translating ? "Suggested English phrase" : "More natural"}</div>
       <div class="natural">${escapeHtml(natural)}</div>
     ` : ""}
 
