@@ -269,24 +269,39 @@ async function connectSocket() {
       if (data.is_final) {
         finalTranscript = (finalTranscript + " " + transcript).trim();
 
-        // Send each complete sentence (ending in . ? !) for correction the moment it's
-        // finalized — don't wait for a long silence, which can mean fluent speech never
-        // gets analyzed at all.
-        const split = splitComplete(finalTranscript);
-        for (const sentence of split.sentences) {
-          if (wordCount(sentence) >= minWords) analyzeSentence(sentence);
+        if (isTranslating()) {
+          // A hesitant beginner's natural pauses often get mis-punctuated as sentence
+          // endings. Don't act on punctuation here — just keep accumulating and wait for
+          // an actual silence (speech_final, below) to send the whole thought at once.
+          renderLiveTranscript(finalTranscript, "");
+        } else {
+          // English mode: send each complete sentence (ending in . ? !) the moment it's
+          // finalized — don't wait for a long silence, which can mean fluent speech never
+          // gets analyzed at all.
+          const split = splitComplete(finalTranscript);
+          let carry = "";
+          for (const sentence of split.sentences) {
+            if (wordCount(sentence) >= minWords) {
+              analyzeSentence(sentence);
+            } else {
+              // Too short to stand on its own (e.g. "Ok." before more speech follows) —
+              // keep it instead of silently dropping it, so it merges with what comes next.
+              carry += sentence + " ";
+            }
+          }
+          finalTranscript = (carry + split.remainder).trim();
+          renderLiveTranscript(finalTranscript, "");
         }
-        finalTranscript = split.remainder.trim();
-        renderLiveTranscript(finalTranscript, "");
       } else {
         renderLiveTranscript(finalTranscript, transcript);
       }
 
       if (data.speech_final) {
-        // Safety net: an actual pause happened, so flush whatever's left even if it
-        // had no terminal punctuation (e.g. the speaker trailed off).
+        // The pause ended, so send whatever was said as one complete thought.
+        // In translation mode this is the ONLY trigger (no punctuation-based splitting),
+        // and beginners often say meaningful short phrases, so skip the word-count filter.
         const leftover = finalTranscript.trim();
-        if (leftover && wordCount(leftover) >= minWords) analyzeSentence(leftover);
+        if (leftover && (isTranslating() || wordCount(leftover) >= minWords)) analyzeSentence(leftover);
         finalTranscript = "";
         renderLiveTranscript("", "");
       }
