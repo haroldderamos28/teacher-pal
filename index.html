@@ -172,6 +172,20 @@ function wordCount(text) {
 
 function setStatus(message) { statusEl.textContent = message; }
 
+// Pulls out every complete sentence (ending in . ? !) from the accumulated text, in
+// order, and returns whatever's left over (an unfinished trailing fragment).
+function splitComplete(text) {
+  const matches = text.match(/[^.?!]*[.?!]+["')\]]*\s*/g) || [];
+  let consumed = 0;
+  const sentences = [];
+  for (const m of matches) {
+    const trimmed = m.trim();
+    if (trimmed) sentences.push(trimmed);
+    consumed += m.length;
+  }
+  return { sentences: sentences, remainder: text.slice(consumed) };
+}
+
 startBtn.addEventListener("click", startListening);
 
 async function startListening() {
@@ -219,8 +233,8 @@ async function connectSocket() {
     "&language=" + encodeURIComponent(DEEPGRAM_LANGUAGE) +
     "&smart_format=true" +
     "&interim_results=true" +
-    "&endpointing=1000" +
-    "&utterance_end_ms=2000";
+    "&endpointing=500" +
+    "&utterance_end_ms=1200";
 
   socket = new WebSocket(deepgramUrl, ["bearer", tokenData.token]);
 
@@ -240,20 +254,31 @@ async function connectSocket() {
       const transcript = data.channel?.alternatives?.[0]?.transcript || "";
       if (!transcript.trim()) return;
 
+      const minWords = parseInt(minWordsEl.value, 10);
+
       if (data.is_final) {
         finalTranscript = (finalTranscript + " " + transcript).trim();
+
+        // Send each complete sentence (ending in . ? !) for correction the moment it's
+        // finalized — don't wait for a long silence, which can mean fluent speech never
+        // gets analyzed at all.
+        const split = splitComplete(finalTranscript);
+        for (const sentence of split.sentences) {
+          if (wordCount(sentence) >= minWords) analyzeSentence(sentence);
+        }
+        finalTranscript = split.remainder.trim();
         renderLiveTranscript(finalTranscript, "");
       } else {
         renderLiveTranscript(finalTranscript, transcript);
       }
 
       if (data.speech_final) {
-        // Use the whole accumulated utterance, not just the last finalized chunk —
-        // speech_final only flags the final chunk, it doesn't contain everything said before it.
-        const sentence = finalTranscript.trim();
-        const minWords = parseInt(minWordsEl.value, 10);
-        if (wordCount(sentence) >= minWords) analyzeSentence(sentence);
+        // Safety net: an actual pause happened, so flush whatever's left even if it
+        // had no terminal punctuation (e.g. the speaker trailed off).
+        const leftover = finalTranscript.trim();
+        if (leftover && wordCount(leftover) >= minWords) analyzeSentence(leftover);
         finalTranscript = "";
+        renderLiveTranscript("", "");
       }
     } catch (error) {
       console.error("Deepgram message error:", error);
