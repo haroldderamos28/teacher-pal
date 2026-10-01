@@ -138,7 +138,7 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 20</div>
+  <div class="ver">version 21</div>
 
 <script>
   const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
@@ -158,377 +158,77 @@
     $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
     $('colRight').textContent = t ? 'English translation' : 'Feedback';
   }
-  updateControlVisibility();
+  
+  langEl.addEventListener('change', updateControlVisibility);
 
-  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, buffer = '', watchdog = null, lastActivity = 0, keepAliveTimer = null, pendingPauseChunk = false, pauseCloseTimer = null;
+  let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, keepAliveTimer = null;
 
+  // FIX: This heart-rate engine now tracks continuously while active or idling
   function startKeepAlive() {
     clearInterval(keepAliveTimer);
-    // Deepgram closes the connection after ~10-12s with no audio, so while paused we
-    // send a tiny "still here" ping instead of real audio, to keep the connection open.
     keepAliveTimer = setInterval(() => {
-      if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'KeepAlive' }));
-    }, 8000);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'KeepAlive' }));
+      }
+    }, 5000); // 5 seconds guarantees Deepgram stays awake
   }
-  function stopKeepAlive() { clearInterval(keepAliveTimer); }
+  
+  function stopKeepAlive() { 
+    clearInterval(keepAliveTimer); 
+  }
 
-  // Remember the teacher's settings
+  // Remember teacher settings
   try {
     modeEl.value = localStorage.getItem('tp_mode') || 'natural';
     levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
     extrasEl.checked = localStorage.getItem('tp_extras') === '1';
   } catch (e) {}
+  
   modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
   levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
   extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
-  const hideShortEl = $('hideShort'), minWordsEl = $('minWords');
-  try {
-    hideShortEl.checked = localStorage.getItem('tp_hideShort') === '1';
-    minWordsEl.value = localStorage.getItem('tp_minWords') || '6';
-  } catch (e) {}
-  hideShortEl.addEventListener('change', () => { try { localStorage.setItem('tp_hideShort', hideShortEl.checked ? '1' : '0'); } catch (e) {} });
-  minWordsEl.addEventListener('change', () => { try { localStorage.setItem('tp_minWords', minWordsEl.value); } catch (e) {} });
-  try {
-    langEl.value = localStorage.getItem('tp_lang') || 'en';
-    translateLevelEl.value = localStorage.getItem('tp_translateLevel') || 'basic';
-  } catch (e) {}
-  updateControlVisibility();
-  langEl.addEventListener('change', () => {
-    try { localStorage.setItem('tp_lang', langEl.value); } catch (e) {}
-    updateControlVisibility();
-    // Switching languages mid-session needs a fresh Deepgram connection.
-    if (running) { stop(); start(); }
-  });
-  translateLevelEl.addEventListener('change', () => { try { localStorage.setItem('tp_translateLevel', translateLevelEl.value); } catch (e) {} });
 
-  const norm = (s) => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
-
-  // Rather than matching a fixed list of filler phrases (which always misses things like
-  // "alright, that's true"), any complete sentence shorter than the chosen word count is
-  // treated as too short to bother rephrasing — no matter what it says.
-  function wordCount(text) {
-    return (text.match(/[A-Za-z0-9']+/g) || []).length;
-  }
-  function isSkippable(text) {
-    return wordCount(text) < parseInt(minWordsEl.value, 10);
-  }
-
-  function line(parent, cls, text) {
-    if (!text) return;
-    const d = document.createElement('div');
-    d.className = cls;
-    d.textContent = text;
-    parent.append(d);
-  }
-
-  function makeRow(text) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const left = document.createElement('div'); left.textContent = text;
-    const right = document.createElement('div'); right.className = 'fb';
-    row.append(left, right);
-    rowsEl.prepend(row);
-    return right;
-  }
-
-  async function analyse(text) {
-    const box = makeRow(text);
-    box.textContent = '…';
+  // Core Connection Handler
+  toggleBtn.addEventListener('click', async () => {
+    if (running) {
+      stopListening();
+      return;
+    }
+    
+    statusEl.textContent = 'Obtaining access token...';
     try {
-      const res = await fetch(WORKER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, mode: modeEl.value, level: levelEl.value, extras: extrasEl.checked }),
-      });
-      const d = await res.json();
-      box.textContent = '';
-      if (!d.correction) { line(box, 'err', 'Error: ' + (d.error || 'unknown')); return; }
+      const tokenRes = await fetch(`${WORKER}/token`, { method: 'POST' });
+      const tokenData = await tokenRes.json();
+      if (tokenData.error) throw new Error(tokenData.error);
 
-      if (norm(d.correction) === norm(text)) line(box, 'ok', '✓ No correction needed');
-      else line(box, 'fix', '🔴 ' + d.correction);
-      if (d.natural && norm(d.natural) !== norm(d.correction)) line(box, 'nat', '🟢 ' + d.natural);
-      line(box, 'tip', d.explanation ? '💡 ' + d.explanation : '');
-      line(box, 'ask', d.followup ? '💬 ' + d.followup : '');
-      if (d.alternatives && d.alternatives.length) line(box, 'tip', '🔁 ' + d.alternatives.join('  •  '));
-      line(box, 'tip', d.vocabulary ? '📚 ' + d.vocabulary : '');
-    } catch (e) {
-      box.textContent = '';
-      line(box, 'err', 'Could not reach the server.');
-    }
-  }
+      statusEl.textContent = 'Connecting to voice engine...';
+      const targetLang = langEl.value;
+      
+      // Open WebSocket connection to Deepgram Nova-3
+      socket = new WebSocket(`wss://://deepgram.com{targetLang}&smart_formatting=true&interim_results=true&utterance_end_ms=1000`, [
+        'token',
+        tokenData.token,
+      ]);
 
-  async function translateText(text) {
-    const box = makeRow(text);
-    box.textContent = '…';
-    try {
-      const res = await fetch(WORKER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, translate: true, lang: langEl.value, level: translateLevelEl.value }),
-      });
-      const d = await res.json();
-      box.textContent = '';
-      if (!d.translation) { line(box, 'err', 'Error: ' + (d.error || 'unknown')); return; }
-      line(box, 'trn', '🟢 ' + d.translation);
-      line(box, 'sug', d.suggestion ? '💬 In English, try: "' + d.suggestion + '"' : '');
-    } catch (e) {
-      box.textContent = '';
-      line(box, 'err', 'Could not reach the server.');
-    }
-  }
+      socket.onopen = async () => {
+        statusEl.textContent = 'Voice engine active. Accessing microphone...';
+        startKeepAlive(); // Activate immediate protection loop
 
-  // Shown for any leftover fragment — whether the student trailed off naturally during a
-  // pause, or paused for 6+ seconds mid-sentence while still listening. Rather than the
-  // app guessing whether it's worth sending to the AI, the teacher decides.
-  function addPendingDecision(text) {
-    const box = makeRow(text);
-    const yesBtn = document.createElement('button');
-    yesBtn.className = 'miniBtn';
-    yesBtn.textContent = isTranslating() ? 'Translate' : 'Rephrase';
-    const noBtn = document.createElement('button');
-    noBtn.className = 'miniBtn';
-    noBtn.textContent = 'Skip';
-    box.append(yesBtn, noBtn);
+        try {
+          const audioSource = $('source').value;
+          if (audioSource === 'mic') {
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } else {
+            displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            const audioTracks = displayStream.getAudioTracks();
+            if (audioTracks.length === 0) throw new Error("No system audio selected. Share your tab audio!");
+            stream = new MediaStream(audioTracks);
+          }
 
-    yesBtn.addEventListener('click', () => {
-      box.parentElement.remove(); // analyse()/translateText() will add its own fresh row
-      if (isTranslating()) translateText(text); else analyse(text);
-    });
-    noBtn.addEventListener('click', () => {
-      box.innerHTML = '';
-      line(box, 'muted', '(skipped)');
-    });
-  }
-
-  function addSkipped(text) {
-    const box = makeRow(text);
-    line(box, 'ok', '✓');
-  }
-
-  // Pulls every complete sentence (ending in . ? or !) out of a block of text, in order,
-  // and returns whatever's left over (a trailing fragment with no ending punctuation yet).
-  // This lets a student talk continuously for a long time without the app ever having to
-  // wait for a big pause, and without one giant run-on ever piling up unprocessed.
-  function splitComplete(text) {
-    const re = /[^.?!]*[.?!]+["')\]]*\s*/g;
-    const complete = [];
-    let lastIndex = 0, m;
-    while ((m = re.exec(text)) !== null) {
-      const piece = m[0].trim();
-      if (piece) complete.push(piece);
-      lastIndex = re.lastIndex;
-    }
-    return { complete, rest: text.slice(lastIndex).trim() };
-  }
-
-  function handleSentence(text) {
-    if (isSkippable(text)) { if (!hideShortEl.checked) addSkipped(text); return; }
-    analyse(text);
-  }
-
-  // Called every time new transcribed text arrives in English mode: peels off any
-  // sentence(s) that are now complete and sends each one immediately, keeping only the
-  // genuine trailing fragment (if any) in the buffer to wait for more words.
-  function processBuffer() {
-    const { complete, rest } = splitComplete(buffer);
-    buffer = rest;
-    interimEl.textContent = rest;
-    complete.forEach(handleSentence);
-  }
-
-  // Used for: translation mode (which flushes the whole buffer at once), and for clearing
-  // out a genuine leftover fragment in English mode (nothing left to extract from it).
-  function flush() {
-    const text = buffer.trim();
-    buffer = '';
-    interimEl.textContent = '';
-    if (!text) return;
-    if (isTranslating()) { translateText(text); return; }
-    addPendingDecision(text);
-  }
-
-  async function start() {
-    try {
-      if ($('source').value === 'mic') {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } else {
-        displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        const audioTracks = displayStream.getAudioTracks();
-        if (!audioTracks.length) {
-          displayStream.getTracks().forEach(t => t.stop());
-          statusEl.textContent = 'No audio shared. Pick a Chrome Tab (or Entire Screen on Windows) and tick "Share tab audio" / "Share system audio".';
-          return;
-        }
-        displayStream.getVideoTracks().forEach(t => t.stop());
-        stream = new MediaStream(audioTracks);
-        audioTracks[0].onended = () => { if (running) stop(); };
-      }
-    } catch (e) { statusEl.textContent = 'Could not start audio: ' + e.message; return; }
-
-    const ok = await connectSocket();
-    if (!ok) return; // connectSocket() already set an error message and cleaned up
-
-    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-    recorder.ondataavailable = (e) => {
-      // While paused we keep recording (so the share/mic permission stays alive)
-      // but don't send new audio anywhere. The one exception is the single chunk
-      // forced out by clicking Pause itself (see pendingPauseChunk below) — that
-      // chunk holds audio spoken just before the click, and we still want it sent.
-      if (paused && !pendingPauseChunk) return;
-      pendingPauseChunk = false;
-      if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN) socket.send(e.data);
-    };
-    recorder.start(250);
-
-    running = true;
-    lastActivity = Date.now();
-    clearInterval(watchdog);
-    watchdog = setInterval(() => {
-      if (paused || !buffer.trim()) return;
-      const waited = Date.now() - lastActivity;
-      if (waited > 6000) { flush(); statusEl.textContent = 'Listening… speak now.'; }
-      else if (waited > 1500) statusEl.textContent = 'Holding an unfinished sentence… ' + Math.ceil((6000 - waited) / 1000) + 's';
-    }, 500);
-    toggleBtn.textContent = 'Stop';
-    paused = false;
-    pauseBtn.textContent = 'Pause';
-    pauseBtn.style.display = '';
-  }
-
-  // Opens a fresh Deepgram connection (new token + new socket). Used both by start() and
-  // by the Resume button, when the previous connection has expired or dropped during a
-  // pause — reconnecting here never touches the microphone/screen permission, since the
-  // existing recorder and stream are left completely alone and just start sending to
-  // whatever socket this variable currently points to.
-  async function connectSocket() {
-    statusEl.textContent = 'Connecting…';
-    let token;
-    try {
-      const r = await fetch(WORKER + '/token', { method: 'POST' });
-      const d = await r.json();
-      if (!d.token) throw new Error(d.error || 'No token');
-      token = d.token;
-    } catch (e) {
-      statusEl.textContent = 'Could not get access: ' + e.message;
-      if (!paused) stop();
-      return false;
-    }
-
-    // English uses nova-3 (most accurate for English). Other languages use nova-2,
-    // which covers 36+ languages including Japanese, Korean, and Mandarin.
-    const dgModel = isTranslating() ? 'nova-2' : 'nova-3';
-    const dgLang = isTranslating() ? langEl.value : 'en';
-    const url = 'wss://api.deepgram.com/v1/listen?model=' + dgModel + '&language=' + dgLang +
-      '&smart_format=true&interim_results=true&endpointing=1200';
-    socket = new WebSocket(url, ['bearer', token]);
-
-    socket.onopen = () => {
-      if (!paused) statusEl.textContent = 'Listening… speak now.';
-    };
-
-    socket.onmessage = (msg) => {
-      // We don't drop results just because we're paused: once paused, no new audio is
-      // being sent, so anything still arriving here is the transcript for words spoken
-      // just before the click — exactly what we still want to capture and show.
-      const data = JSON.parse(msg.data);
-      // If Deepgram sends back an error message (bad account status, quota, invalid
-      // params, etc.) right before closing, show it instead of silently ignoring it.
-      if (data.type === 'Error' || data.error) {
-        statusEl.textContent = 'Deepgram error: ' + (data.description || data.message || data.error || JSON.stringify(data));
-        return;
-      }
-      const alt = data.channel && data.channel.alternatives && data.channel.alternatives[0];
-      const text = alt && alt.transcript;
-      if (text) {
-        lastActivity = Date.now();
-        if (data.is_final) {
-          buffer += text + ' ';
-          // English mode: pull out any sentence(s) that just became complete right away,
-          // instead of waiting for the student to stop talking entirely.
-          if (!isTranslating()) processBuffer();
-          else interimEl.textContent = buffer;
-        } else {
-          interimEl.textContent = buffer + text;
-        }
-      }
-      // Translation mode still waits for Deepgram's own pause signal, since a beginner's
-      // native-language utterance doesn't need to match the . ? ! sentence-ending check.
-      if (data.speech_final && isTranslating()) flush();
-    };
-
-    socket.onerror = () => { if (!paused) statusEl.textContent = 'Connection error. Please try again.'; };
-    socket.onclose = (event) => {
-      // If the connection drops while we're deliberately paused (e.g. it simply expired
-      // during a long pause), that's expected — we just clear the reference and quietly
-      // open a fresh one the moment the teacher clicks Resume. Only treat an unexpected
-      // drop while actively listening as something that needs a full stop.
-      socket = null;
-      if (!paused && running) {
-        // Show exactly why it closed (code + reason) instead of a generic "Stopped.",
-        // so a real problem is visible on-screen instead of needing DevTools to diagnose.
-        stop('Connection closed (code ' + event.code + (event.reason ? ': ' + event.reason : '') + ').');
-      }
-    };
-
-    return true;
-  }
-
-  function stop(reason) {
-    running = false;
-    paused = false;
-    clearTimeout(pauseCloseTimer);
-    stopKeepAlive();
-    clearInterval(watchdog);
-    flush();
-    if (recorder && recorder.state !== 'inactive') recorder.stop();
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (displayStream) displayStream.getTracks().forEach(t => t.stop());
-    if (socket && socket.readyState === WebSocket.OPEN) socket.close();
-    socket = null;
-    toggleBtn.textContent = 'Start Listening';
-    pauseBtn.style.display = 'none';
-    if (reason) statusEl.textContent = reason;
-    else if (!statusEl.textContent.startsWith('Could not') && !statusEl.textContent.startsWith('No audio')) statusEl.textContent = 'Stopped.';
-  }
-
-  toggleBtn.addEventListener('click', () => (running ? stop() : start()));
-
-  pauseBtn.addEventListener('click', () => {
-    if (!running) return;
-    if (!paused) {
-      paused = true;
-      pauseBtn.textContent = 'Resume';
-      statusEl.textContent = 'Pausing…';
-      // Force out whatever audio is already sitting in the recorder's buffer (up to ~250ms
-      // of already-spoken audio) so the last moment before the click isn't lost, then give
-      // the server a brief moment to send back its transcript before we close off the
-      // sentence — otherwise words spoken right before the click could get cut short.
-      pendingPauseChunk = true;
-      try { recorder.requestData(); } catch (e) {}
-      startKeepAlive();
-      clearTimeout(pauseCloseTimer);
-      pauseCloseTimer = setTimeout(() => {
-        const text = buffer.trim();
-        buffer = '';
-        interimEl.textContent = '';
-        if (text) addPendingDecision(text);
-        if (paused) statusEl.textContent = 'Paused. Not listening — click Resume to continue.';
-      }, 800);
-    } else {
-      clearTimeout(pauseCloseTimer);
-      paused = false;
-      pauseBtn.textContent = 'Pause';
-      stopKeepAlive();
-      lastActivity = Date.now();
-      if (!socket || socket.readyState !== WebSocket.OPEN) {
-        // The connection expired or dropped during the pause — reconnect quietly.
-        // The microphone/screen-share permission is untouched, so no prompt reappears.
-        connectSocket();
-      } else {
-        statusEl.textContent = 'Listening… speak now.';
-      }
-    }
-  });
-</script>
-</body>
-</html>
+          // Pipe audio buffer stream to Deepgram
+          recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          recorder.ondataavailable = (e) => {
+            if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN && !paused) {
+              socket.send(e.data);
+            }
+          };
