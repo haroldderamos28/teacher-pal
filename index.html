@@ -141,7 +141,7 @@
   <div class="ver">version 21</div>
 
 <script>
-  const WORKER = 'https://blue-base-6bdc.haroldderamos28.workers.dev';
+  const WORKER = 'https://workers.dev';
 
   const $ = (id) => document.getElementById(id);
   const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
@@ -158,43 +158,37 @@
     $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
     $('colRight').textContent = t ? 'English translation' : 'Feedback';
   }
-  
   langEl.addEventListener('change', updateControlVisibility);
 
   let socket = null, recorder = null, stream = null, displayStream = null, running = false, paused = false, keepAliveTimer = null;
 
-  // FIX: This heart-rate engine now tracks continuously while active or idling
+  // FIX: This heartbeat operates globally every 5 seconds to keep Deepgram from closing down
   function startKeepAlive() {
     clearInterval(keepAliveTimer);
     keepAliveTimer = setInterval(() => {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: 'KeepAlive' }));
       }
-    }, 5000); // 5 seconds guarantees Deepgram stays awake
+    }, 5000);
   }
-  
-  function stopKeepAlive() { 
-    clearInterval(keepAliveTimer); 
-  }
+  function stopKeepAlive() { clearInterval(keepAliveTimer); }
 
-  // Remember teacher settings
+  // Restoring user configuration persistence
   try {
     modeEl.value = localStorage.getItem('tp_mode') || 'natural';
     levelEl.value = localStorage.getItem('tp_level') || 'intermediate';
     extrasEl.checked = localStorage.getItem('tp_extras') === '1';
   } catch (e) {}
-  
   modeEl.addEventListener('change', () => { try { localStorage.setItem('tp_mode', modeEl.value); } catch (e) {} });
   levelEl.addEventListener('change', () => { try { localStorage.setItem('tp_level', levelEl.value); } catch (e) {} });
   extrasEl.addEventListener('change', () => { try { localStorage.setItem('tp_extras', extrasEl.checked ? '1' : '0'); } catch (e) {} });
 
-  // Core Connection Handler
   toggleBtn.addEventListener('click', async () => {
     if (running) {
       stopListening();
       return;
     }
-    
+
     statusEl.textContent = 'Obtaining access token...';
     try {
       const tokenRes = await fetch(`${WORKER}/token`, { method: 'POST' });
@@ -203,8 +197,7 @@
 
       statusEl.textContent = 'Connecting to voice engine...';
       const targetLang = langEl.value;
-      
-      // Open WebSocket connection to Deepgram Nova-3
+
       socket = new WebSocket(`wss://://deepgram.com{targetLang}&smart_formatting=true&interim_results=true&utterance_end_ms=1000`, [
         'token',
         tokenData.token,
@@ -212,7 +205,7 @@
 
       socket.onopen = async () => {
         statusEl.textContent = 'Voice engine active. Accessing microphone...';
-        startKeepAlive(); // Activate immediate protection loop
+        startKeepAlive();
 
         try {
           const audioSource = $('source').value;
@@ -221,14 +214,20 @@
           } else {
             displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
             const audioTracks = displayStream.getAudioTracks();
-            if (audioTracks.length === 0) throw new Error("No system audio selected. Share your tab audio!");
+            if (audioTracks.length === 0) throw new Error("No system audio selected.");
             stream = new MediaStream(audioTracks);
           }
 
-          // Pipe audio buffer stream to Deepgram
           recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
           recorder.ondataavailable = (e) => {
             if (e.data.size > 0 && socket && socket.readyState === WebSocket.OPEN && !paused) {
               socket.send(e.data);
             }
           };
+          recorder.start(250);
+
+          running = true;
+          toggleBtn.textContent = 'Stop Listening';
+          pauseBtn.style.display = '';
+          statusEl.textContent = 'Listening actively...';
+        } catch (err) {
