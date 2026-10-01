@@ -138,15 +138,16 @@
 
   <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
   <div id="rows"></div>
-  <div class="ver">version 25</div>
+  <div class="ver">version 26</div>
 
 <script>
   const WORKER = 'https://workers.dev';
 
-  const $ = (id) => document.getElementById(id.replace('#', ''));
+  // Standard utility function to look up elements safely by ID
+  const $ = (id) => document.getElementById(id);
   
   const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
-  const translateLevelEl = $('translateLevel');
+  const translateLevelEl = $('translateLevel'), minWordsEl = $('minWords'), hideShortEl = $('hideShort'), sourceEl = $('source');
   const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
   const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
@@ -207,7 +208,7 @@
         startKeepAlive();
 
         try {
-          const audioSource = $('source').value;
+          const audioSource = sourceEl.value;
           if (audioSource === 'mic') {
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           } else {
@@ -230,9 +231,3 @@
           pauseBtn.style.display = '';
           statusEl.textContent = 'Listening actively...';
         } catch (err) {
-          statusEl.textContent = `Audio Error: ${err.message}`;
-          stopListening();
-        }
-      };
-
-      socket.onmessage = async (msg) => {
