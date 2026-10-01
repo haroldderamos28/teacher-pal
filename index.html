@@ -1,11 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher Pal – Live Coaching</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.4rem; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 1rem; }
+  label { display: block; font-size: .9rem; color: #555; margin-top: .8rem; }
+  select { width: 100%; padding: .55rem; margin-top: .25rem; box-sizing: border-box; }
+  .check { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; font-size: .95rem; color: #333; }
+  button { padding: .6rem 1.2rem; font-size: 1rem; cursor: pointer; margin-top: 1rem; }
+  #status { margin: .8rem 0; color: #666; }
+  .cols, .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
+  .cols { font-weight: 600; border-bottom: 2px solid #ddd; padding-bottom: .4rem; }
+  .row { padding: .7rem 0; border-bottom: 1px solid #eee; line-height: 1.5; }
+  .fb div { margin-bottom: .25rem; }
+  .fix { color: #b00020; font-weight: 500; }
+  .nat { color: #0a6b3a; font-weight: 500; }
+  .tip { color: #555; }
+  .ask { color: #1a4fa0; }
+  .ok { color: #888; }
+  .trn { color: #0a6b3a; font-weight: 500; }
+  .sug { color: #1a4fa0; }
+  .interim { color: #999; padding: .7rem 0; min-height: 1.4rem; }
+  .err { color: #b00020; }
+  .muted { color: #888; font-style: italic; font-weight: 400; }
+  .miniBtn { padding: .3rem .7rem; font-size: .85rem; margin: 0 .5rem .3rem 0; cursor: pointer; }
+  .ver { color: #aaa; font-size: .75rem; margin-top: 2rem; }
+  @media (max-width: 600px) { .controls, .cols, .row { grid-template-columns: 1fr; gap: .3rem; } }
+</style>
+</head>
+<body>
+  <h1>Live Coaching</h1>
+
+  <div class="controls">
+    <div>
+      <label for="lang">Student is speaking</label>
+      <select id="lang">
+        <option value="en">English (get corrections)</option>
+        <optgroup label="Translate to English">
+          <option value="ja">Japanese</option>
+          <option value="ko">Korean</option>
+          <option value="zh">Mandarin Chinese</option>
+          <option value="zh-TW">Mandarin Chinese (Traditional)</option>
+          <option value="zh-HK">Cantonese</option>
+          <option value="vi">Vietnamese</option>
+          <option value="th">Thai</option>
+          <option value="id">Indonesian</option>
+          <option value="ms">Malay</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="it">Italian</option>
+          <option value="pt">Portuguese</option>
+          <option value="nl">Dutch</option>
+          <option value="ru">Russian</option>
+          <option value="uk">Ukrainian</option>
+          <option value="pl">Polish</option>
+          <option value="tr">Turkish</option>
+          <option value="hi">Hindi</option>
+          <option value="el">Greek</option>
+          <option value="ro">Romanian</option>
+          <option value="hu">Hungarian</option>
+          <option value="cs">Czech</option>
+          <option value="sk">Slovak</option>
+          <option value="bg">Bulgarian</option>
+          <option value="sv">Swedish</option>
+          <option value="da">Danish</option>
+          <option value="no">Norwegian</option>
+          <option value="fi">Finnish</option>
+        </optgroup>
+      </select>
+    </div>
+    <div>
+      <label for="source">Audio source</label>
+      <select id="source">
+        <option value="tab">Tab / system audio (the other person's voice)</option>
+        <option value="mic">My microphone (my voice)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="controls" id="englishControls">
+    <div>
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="natural">Natural</option>
+        <option value="accurate">Accurate (corrections only)</option>
+        <option value="casual">Casual</option>
+        <option value="business">Business</option>
+        <option value="professional">Professional (formal)</option>
+        <option value="concise">Concise</option>
+        <option value="student">Student level (simple words)</option>
+      </select>
+    </div>
+    <div>
+      <label for="level">Difficulty</label>
+      <select id="level">
+        <option value="basic">Basic</option>
+        <option value="intermediate" selected>Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+    <div>
+      <label for="minWords">Only rephrase sentences with at least this many words</label>
+      <select id="minWords">
+        <option value="1">1 (rephrase everything)</option>
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div>
+      <label class="check"><input type="checkbox" id="extras"> Show extras (other ways to say it, vocabulary)</label>
+      <label class="check"><input type="checkbox" id="hideShort"> Hide short replies instead of showing a checkmark</label>
+    </div>
+  </div>
+
+  <div class="controls" id="translateControls" style="display:none">
+    <div>
+      <label for="translateLevel">Student's level</label>
+      <select id="translateLevel">
+        <option value="basic">Basic</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+      </select>
+    </div>
+  </div>
+
+  <button id="toggle">Start Listening</button>
+  <button id="pauseBtn" style="display:none">Pause</button>
+  <div id="status">Not connected.</div>
+  <div id="interim" class="interim"></div>
+
+  <div class="cols"><div id="colLeft">Student said</div><div id="colRight">Feedback</div></div>
+  <div id="rows"></div>
+  <div class="ver">version 22</div>
+
 <script>
   const WORKER = 'https://workers.dev';
 
-  const \$ = (id) => document.getElementById(id);
-  const langEl = ('lang'), modeEl = ('mode'), levelEl = ('level'), extrasEl = ('extras');
-  const translateLevelEl = \$('translateLevel');
-  const englishControlsEl = ('englishControls'), translateControlsEl = ('translateControls');
-  const toggleBtn = \$('toggle'), pauseBtn = ('pauseBtn'), statusEl = ('status'), rowsEl = ('rows'), interimEl = ('interim');
+  const $ = (id) => document.getElementById(id);
+  const langEl = $('lang'), modeEl = $('mode'), levelEl = $('level'), extrasEl = $('extras');
+  const translateLevelEl = $('translateLevel');
+  const englishControlsEl = $('englishControls'), translateControlsEl = $('translateControls');
+  const toggleBtn = $('toggle'), pauseBtn = $('pauseBtn'), statusEl = $('status'), rowsEl = $('rows'), interimEl = $('interim');
 
   function isTranslating() { return langEl.value !== 'en'; }
 
@@ -13,8 +155,8 @@
     const t = isTranslating();
     englishControlsEl.style.display = t ? 'none' : '';
     translateControlsEl.style.display = t ? '' : 'none';
-    \$('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
-    \$('colRight').textContent = t ? 'English translation' : 'Feedback';
+    $('colLeft').textContent = t ? 'Student said (their language)' : 'Student said';
+    $('colRight').textContent = t ? 'English translation' : 'Feedback';
   }
   langEl.addEventListener('change', updateControlVisibility);
 
@@ -64,7 +206,7 @@
         startKeepAlive();
 
         try {
-          const audioSource = \$('source').value;
+          const audioSource = $('source').value;
           if (audioSource === 'mic') {
             stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           } else {
@@ -93,142 +235,3 @@
       };
 
       socket.onmessage = async (msg) => {
-        const data = JSON.parse(msg.data);
-        // FIX APPLIED HERE:
-        if (!data.channel?.alternatives) return;
-
-        const transcript = data.channel.alternatives[0]?.transcript || '';
-
-        if (data.is_final) {
-          interimEl.textContent = '';
-          if (transcript.trim().length > 0) {
-            appendRow(transcript.trim());
-          }
-        } else {
-          interimEl.textContent = transcript;
-        }
-      };
-
-      socket.onclose = (e) => {
-        console.log("Connection closed with code:", e.code);
-        statusEl.textContent = `Connection closed (code ${e.code}).`;
-        stopListening();
-      };
-
-      socket.onerror = (err) => {
-        statusEl.textContent = 'Voice network error occurred.';
-        console.error(err);
-      };
-
-    } catch (err) {
-      statusEl.textContent = `Connection failed: ${err.message}`;
-    }
-  });
-
-  pauseBtn.addEventListener('click', () => {
-    paused = !paused;
-    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
-    statusEl.textContent = paused ? 'Monitoring paused.' : 'Listening actively...';
-  });
-
-  function stopListening() {
-    running = false;
-    paused = false;
-    toggleBtn.textContent = 'Start Listening';
-    pauseBtn.style.display = 'none';
-    pauseBtn.textContent = 'Pause';
-    
-    stopKeepAlive();
-    if (recorder && recorder.state !== 'inactive') recorder.stop();
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    if (displayStream) displayStream.getTracks().forEach(track => track.stop());
-    if (socket) socket.close();
-    
-    recorder = null;
-    stream = null;
-    displayStream = null;
-    socket = null;
-  }
-
-  async function appendRow(studentSaidText) {
-    const minWordsLimit = parseInt(\$('minWords').value, 10);
-    const wordCount = studentSaidText.split(/\s+/).filter(Boolean).length;
-
-    const row = document.createElement('div');
-    row.className = 'row';
-
-    const leftCol = document.createElement('div');
-    leftCol.textContent = studentSaidText;
-
-    const rightCol = document.createElement('div');
-    rightCol.className = 'fb';
-    rightCol.innerHTML = '<span class="muted">Analyzing...</span>';
-
-    row.appendChild(leftCol);
-    row.appendChild(rightCol);
-    rowsEl.insertBefore(row, rowsEl.firstChild);
-
-    if (!isTranslating() && wordCount < minWordsLimit) {
-      rightCol.innerHTML = \$('hideShort').checked ? '' : '<span class="ok">✓ Short phrase</span>';
-      return;
-    }
-
-    try {
-      const payload = {
-        text: studentSaidText,
-        level: isTranslating() ? translateLevelEl.value : levelEl.value,
-        mode: modeEl.value,
-        extras: extrasEl.checked,
-        translate: isTranslating(),
-        lang: langEl.value
-      };
-
-      const res = await fetch(WORKER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const evalData = await res.json();
-      rightCol.innerHTML = '';
-
-      if (evalData.error) {
-        rightCol.innerHTML = `<span class="err">Error: ${evalData.error}</span>`;
-        return;
-      }
-
-      if (isTranslating()) {
-        if (evalData.translation) {
-          rightCol.innerHTML += `<div class="trn"><strong>Translation:</strong> ${evalData.translation}</div>`;
-        }
-        if (evalData.suggestion) {
-          rightCol.innerHTML += `<div class="sug"><strong>Practice target:</strong> "${evalData.suggestion}"</div>`;
-        }
-      } else {
-        if (evalData.correction && evalData.correction.toLowerCase() !== studentSaidText.toLowerCase()) {
-          rightCol.innerHTML += `<div class="fix"><strong>Fix:</strong> ${evalData.correction}</div>`;
-        }
-        if (evalData.natural) {
-          rightCol.innerHTML += `<div class="nat"><strong>${modeEl.value.toUpperCase()}:</strong> ${evalData.natural}</div>`;
-        }
-        if (evalData.explanation) {
-          rightCol.innerHTML += `<div class="tip"><strong>Grammar Note:</strong> ${evalData.explanation}</div>`;
-        }
-        if (evalData.followup) {
-          rightCol.innerHTML += `<div class="ask"><strong>Next Question:</strong> ${evalData.followup}</div>`;
-        }
-        if (evalData.vocabulary) {
-          rightCol.innerHTML += `<div class="tip"><strong>Upgrade word:</strong> ${evalData.vocabulary}</div>`;
-        }
-        if (evalData.alternatives && evalData.alternatives.length > 0) {
-          rightCol.innerHTML += `<div class="muted"><strong>Variants:</strong> ${evalData.alternatives.join(' | ')}</div>`;
-        }
-        if (rightCol.innerHTML === '') {
-          rightCol.innerHTML = '<span class="ok">✓ Grammatically accurate</span>';
-        }
-      }
-    } catch (e) {
-      rightCol.innerHTML = `<span class="err">Failed evaluating transcript: ${e.message}</span>`;
-    }
-  }
-</script>
