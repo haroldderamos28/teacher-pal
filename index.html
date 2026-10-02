@@ -140,21 +140,24 @@
 
 <script>
 const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
+const SONIOX_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
+const SONIOX_MODEL = "stt-rt-v5";
+const TARGET_RATE = 16000; // audio is sent to Soniox as 16 kHz mono 16-bit PCM
 
 // When "Support language" is set to anything but English, we treat it as the student's
-// own language: Deepgram transcribes in THAT language, and the Worker translates it to
-// English for the teacher instead of correcting English grammar.
+// own language: Soniox listens for THAT language (plus English, since beginners mix), and
+// the Worker translates it to English for the teacher instead of correcting English grammar.
 function isTranslating() { return languageEl.value !== "en"; }
 
 let socket = null;
-let recorder = null;
 let stream = null;
+let audioCtx = null;
+let sourceNode = null;
+let workletNode = null;
+let muteNode = null;
 let running = false;
 let paused = false;
-let pendingPauseChunk = false;
-let keepAliveTimer = null;
 let finalTranscript = "";
-let reconnecting = false; // true while we deliberately close+reopen the socket (e.g. language switch)
 
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -191,10 +194,97 @@ function splitComplete(text) {
   return { sentences: sentences, remainder: text.slice(consumed) };
 }
 
+// Soniox expects ISO 639-1 codes; regional variants map to their base language.
+function sonioxLanguage(code) {
+  return code.split("-")[0];
+}
+
+// ---------------------------------------------------------------------------
+// Audio capture: the mic/tab audio is turned into 16 kHz mono PCM in a background
+// audio thread (an AudioWorklet), in ~100 ms chunks. Raw PCM (instead of recorded
+// webm files) means a fresh Soniox connection can start at any moment, which is what
+// makes Pause, Resume and language switching clean.
+// ---------------------------------------------------------------------------
+const WORKLET_CODE = `
+class PcmSender extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.ratio = sampleRate / ${TARGET_RATE};
+    this.leftover = new Float32Array(0);
+    this.pos = 0;
+    this.out = new Int16Array(1600);
+    this.outLen = 0;
+  }
+  process(inputs) {
+    const channel = inputs[0] && inputs[0][0];
+    if (!channel) return true;
+    const data = new Float32Array(this.leftover.length + channel.length);
+    data.set(this.leftover);
+    data.set(channel, this.leftover.length);
+    const r = this.ratio;
+    let pos = this.pos;
+    while (pos + r <= data.length) {
+      const s = Math.floor(pos);
+      const e = Math.min(data.length, Math.ceil(pos + r));
+      let sum = 0;
+      for (let i = s; i < e; i++) sum += data[i];
+      let v = sum / (e - s);
+      if (v > 1) v = 1; else if (v < -1) v = -1;
+      this.out[this.outLen++] = v < 0 ? v * 0x8000 : v * 0x7fff;
+      if (this.outLen === this.out.length) {
+        this.port.postMessage(this.out.buffer, [this.out.buffer]);
+        this.out = new Int16Array(1600);
+        this.outLen = 0;
+      }
+      pos += r;
+    }
+    const consumed = Math.floor(pos);
+    this.leftover = data.slice(consumed);
+    this.pos = pos - consumed;
+    return true;
+  }
+}
+registerProcessor("pcm-sender", PcmSender);
+`;
+
+async function startAudioPipeline() {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === "suspended") { try { await audioCtx.resume(); } catch {} }
+  const moduleUrl = URL.createObjectURL(new Blob([WORKLET_CODE], { type: "application/javascript" }));
+  try {
+    await audioCtx.audioWorklet.addModule(moduleUrl);
+  } finally {
+    URL.revokeObjectURL(moduleUrl);
+  }
+  sourceNode = audioCtx.createMediaStreamSource(stream);
+  workletNode = new AudioWorkletNode(audioCtx, "pcm-sender");
+  // The worklet only runs while connected to the speakers, so route it through a
+  // silent gain node — nothing is actually played back.
+  muteNode = audioCtx.createGain();
+  muteNode.gain.value = 0;
+  sourceNode.connect(workletNode);
+  workletNode.connect(muteNode);
+  muteNode.connect(audioCtx.destination);
+
+  workletNode.port.onmessage = function (event) {
+    if (paused || !socket || socket.readyState !== WebSocket.OPEN || !socket._configured) return;
+    socket.send(event.data);
+  };
+
+  stream.getAudioTracks().forEach(function (track) {
+    track.addEventListener("ended", function () {
+      if (running) { setStatus("Audio sharing stopped."); stopListening(); }
+    });
+  });
+}
+
 startBtn.addEventListener("click", startListening);
 
 async function startListening() {
   if (running) return;
+  startBtn.disabled = true;
+  // Created right inside the click so the browser lets audio processing start immediately.
+  try { audioCtx = new AudioContext(); } catch {}
   try {
     if (audioSourceEl.value === "tab") {
       setStatus("Choose the tab or window to share, and check \"Share audio\"...");
@@ -213,191 +303,204 @@ async function startListening() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }
 
+    await startAudioPipeline();
+    running = true;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+    audioSourceEl.disabled = true;
     await connectSocket();
 
   } catch (error) {
     console.error(error);
-    setStatus(error.message || "Could not start listening.");
     cleanup();
+    setStatus(error.message || "Could not start listening.");
   }
 }
 
+// Opens a fresh Soniox stream. Called on Start, on Resume, and when the language changes.
 async function connectSocket() {
-  setStatus("Connecting to Deepgram...");
+  setStatus("Connecting to the voice engine...");
   const tokenResponse = await fetch(`${WORKER}/token`, { method: "POST" });
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
-    throw new Error(`Deepgram token error: ${errorText}`);
+    throw new Error(`Voice engine key error: ${errorText}`);
   }
   const tokenData = await tokenResponse.json();
-  if (!tokenData.token) throw new Error("Deepgram token was not returned.");
+  if (!tokenData.token) throw new Error("Voice engine key was not returned.");
+  // The teacher may have pressed Stop or Pause while we were fetching the key.
+  if (!running || paused) return;
 
-  // nova-3 is the most accurate model, but only for English. For any other language
-  // (translation mode) we need nova-2, which covers the full language list below.
   const translating = isTranslating();
-  const sttModel = translating ? "nova-2" : "nova-3";
-  const sttLanguage = translating ? languageEl.value : "en-US";
+  // Beginners often mix their own language with English, so listen for both.
+  const languageHints = translating ? [sonioxLanguage(languageEl.value), "en"] : ["en"];
 
-  const deepgramUrl =
-    "wss://api.deepgram.com/v1/listen" +
-    "?model=" + sttModel +
-    "&language=" + encodeURIComponent(sttLanguage) +
-    "&smart_format=true" +
-    "&interim_results=true" +
-    "&endpointing=500" +
-    "&utterance_end_ms=1200";
+  const ws = new WebSocket(SONIOX_URL);
+  ws._configured = false;
+  ws._ending = false; // true once we've asked this stream to wrap up (pause / switch)
+  socket = ws;
 
-  socket = new WebSocket(deepgramUrl, ["bearer", tokenData.token]);
-
-  socket.onopen = function () {
-    running = true;
-    startBtn.disabled = true;
-    pauseBtn.disabled = false;
-    stopBtn.disabled = false;
-    audioSourceEl.disabled = true;
-    setStatus(paused ? "Paused." : "Listening...");
-    if (!recorder) startRecorder();
+  ws.onopen = function () {
+    ws.send(JSON.stringify({
+      api_key: tokenData.token,
+      model: SONIOX_MODEL,
+      audio_format: "pcm_s16le",
+      sample_rate: TARGET_RATE,
+      num_channels: 1,
+      language_hints: languageHints,
+      enable_endpoint_detection: true,
+      // Beginners pause longer mid-thought; give them more time before "end of utterance".
+      max_endpoint_delay_ms: translating ? 2500 : 1500,
+      context: {
+        general: [
+          { key: "domain", value: "Online English lesson" },
+          { key: "topic", value: "Conversation practice between an ESL teacher and a student" },
+        ],
+      },
+    }));
+    ws._configured = true;
+    if (ws !== socket) return;
+    setStatus("Listening...");
   };
 
-  socket.onmessage = function (event) {
-    try {
-      const data = JSON.parse(event.data);
-      const transcript = data.channel?.alternatives?.[0]?.transcript || "";
-      if (!transcript.trim()) return;
+  ws.onmessage = function (event) {
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
 
-      const minWords = parseInt(minWordsEl.value, 10);
+    if (data.error_code) {
+      console.error("Soniox error:", data);
+      ws._errored = true; // keep this message on screen when the connection then closes
+      if (ws === socket) setStatus(`Voice engine error: ${data.error_message || data.error_code}. Press Pause, then Resume to reconnect.`);
+      return;
+    }
+    // Messages from a stream we've already replaced (e.g. after a language switch) are ignored.
+    if (ws !== socket) return;
 
-      if (data.is_final) {
-        finalTranscript = (finalTranscript + " " + transcript).trim();
+    let newFinal = "";
+    let interim = "";
+    let endpoint = false;
+    for (const token of data.tokens || []) {
+      if (token.text === "<end>" || token.text === "<fin>") { endpoint = true; continue; }
+      if (token.is_final) newFinal += token.text;
+      else interim += token.text;
+    }
 
-        if (isTranslating()) {
-          // A hesitant beginner's natural pauses often get mis-punctuated as sentence
-          // endings. Don't act on punctuation here — just keep accumulating and wait for
-          // an actual silence (speech_final, below) to send the whole thought at once.
-          renderLiveTranscript(finalTranscript, "");
-        } else {
-          // English mode: send each complete sentence (ending in . ? !) the moment it's
-          // finalized — don't wait for a long silence, which can mean fluent speech never
-          // gets analyzed at all.
-          const split = splitComplete(finalTranscript);
+    const minWords = parseInt(minWordsEl.value, 10);
+
+    if (newFinal) {
+      finalTranscript += newFinal;
+
+      if (!isTranslating()) {
+        // English mode: send each complete sentence (ending in . ? !) the moment it's
+        // finalized — don't wait for a pause, so fluent speech still gets analyzed.
+        const split = splitComplete(finalTranscript);
+        if (split.sentences.length) {
           let carry = "";
           for (const sentence of split.sentences) {
             if (wordCount(sentence) >= minWords) {
               analyzeSentence(sentence);
             } else {
               // Too short to stand on its own (e.g. "Ok." before more speech follows) —
-              // keep it instead of silently dropping it, so it merges with what comes next.
+              // keep it so it merges with what comes next instead of being dropped.
               carry += sentence + " ";
             }
           }
-          finalTranscript = (carry + split.remainder).trim();
-          renderLiveTranscript(finalTranscript, "");
+          finalTranscript = carry + split.remainder.replace(/^\s+/, "");
         }
-      } else {
-        renderLiveTranscript(finalTranscript, transcript);
       }
-
-      if (data.speech_final) {
-        // The pause ended, so send whatever was said as one complete thought.
-        // In translation mode this is the ONLY trigger (no punctuation-based splitting),
-        // and beginners often say meaningful short phrases, so skip the word-count filter.
-        const leftover = finalTranscript.trim();
-        if (leftover && (isTranslating() || wordCount(leftover) >= minWords)) analyzeSentence(leftover);
-        finalTranscript = "";
-        renderLiveTranscript("", "");
-      }
-    } catch (error) {
-      console.error("Deepgram message error:", error);
+      // Translation mode: a hesitant beginner's pauses often get mis-punctuated, so we
+      // don't act on punctuation — just keep collecting until the end of the utterance.
     }
+
+    renderLiveTranscript(finalTranscript.trim(), interim);
+
+    // End of an utterance (the student stopped talking), or the stream is wrapping up:
+    // send whatever's left as one complete thought.
+    if (endpoint || data.finished) flushLeftover();
   };
 
-  socket.onerror = function (event) {
-    console.error("Deepgram WebSocket error:", event);
-    if (!paused) setStatus("Voice engine error.");
+  ws.onerror = function (event) {
+    console.error("Soniox WebSocket error:", event);
+    if (ws === socket && !ws._ending && !paused) setStatus("Voice engine error.");
   };
 
-  socket.onclose = function (event) {
-    console.log("Deepgram closed:", event.code, event.reason);
-    // While deliberately paused or mid-reconnect (e.g. switching language), a closed/expired
-    // connection is expected, not an error.
-    if (running && !paused && !reconnecting) setStatus(`Voice engine disconnected (${event.code}).`);
+  ws.onclose = function (event) {
+    console.log("Soniox closed:", event.code, event.reason);
+    if (ws !== socket) return;
+    socket = null;
+    // Closing is expected when we paused or switched language; otherwise tell the teacher.
+    if (running && !paused && !ws._ending && !ws._errored) {
+      setStatus(`Voice engine disconnected (${event.code}). Press Pause, then Resume to reconnect.`);
+    }
   };
 }
 
-// Changing the source language mid-session needs a different Deepgram model (nova-2 vs
-// nova-3), which means a fresh connection. The mic/tab-audio stream and recorder are
-// left completely alone, so there's no new permission prompt.
-languageEl.addEventListener("change", async function () {
-  if (!running || paused) return; // not listening yet (or paused) — the next connect will pick this up
-  reconnecting = true;
+// Sends the unfinished leftover text for analysis. In translation mode short beginner
+// phrases still matter, so the word-count filter is skipped there.
+function flushLeftover() {
+  const leftover = finalTranscript.trim();
+  const minWords = parseInt(minWordsEl.value, 10);
+  if (leftover && (isTranslating() || wordCount(leftover) >= minWords)) analyzeSentence(leftover);
   finalTranscript = "";
   renderLiveTranscript("", "");
+}
+
+// Politely ends a stream: Soniox finalizes the last words, sends them, then closes.
+function endStream(ws) {
+  if (!ws) return;
+  ws._ending = true;
+  try {
+    if (ws.readyState === WebSocket.OPEN) ws.send(new ArrayBuffer(0));
+    else ws.close();
+  } catch {}
+}
+
+// Changing the language needs a fresh stream with new language hints. The mic/tab audio
+// keeps running, so there's no new permission prompt.
+languageEl.addEventListener("change", async function () {
+  if (!running || paused) return; // not listening (or paused) — the next connect picks this up
+  const old = socket;
+  socket = null; // stop sending audio to the old stream right away
+  finalTranscript = "";
+  renderLiveTranscript("", "");
+  if (old) { old._ending = true; try { old.close(); } catch {} }
   setStatus(isTranslating() ? "Switching to " + languageEl.options[languageEl.selectedIndex].text + "..." : "Switching to English...");
-  if (socket) { try { socket.close(); } catch {} socket = null; }
   try {
     await connectSocket();
   } catch (error) {
     setStatus(error.message || "Could not switch language.");
-  } finally {
-    reconnecting = false;
   }
 });
-
-function startRecorder() {
-  if (!stream || !socket) return;
-  stream.getAudioTracks().forEach(function (track) {
-    track.addEventListener("ended", function () {
-      if (running) { setStatus("Audio sharing stopped."); stopListening(); }
-    });
-  });
-  let mimeType = "audio/webm;codecs=opus";
-  if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "audio/webm";
-  recorder = new MediaRecorder(stream, { mimeType: mimeType });
-  recorder.ondataavailable = function (event) {
-    if (event.data.size === 0 || !socket || socket.readyState !== WebSocket.OPEN) return;
-    if (paused && !pendingPauseChunk) return;
-    pendingPauseChunk = false;
-    socket.send(event.data);
-  };
-  recorder.start(100);
-}
 
 pauseBtn.addEventListener("click", function () {
   if (paused) resumeListening(); else pauseListening();
 });
 
+// Pausing closes the Soniox stream completely (Soniox bills for every second a stream is
+// open, even silent ones). The last words spoken are still finalized and analyzed.
 function pauseListening() {
   if (!running || paused) return;
   paused = true;
-  pendingPauseChunk = true; // let the in-flight chunk (the last bit of speech) through
-  try { recorder.requestData(); } catch {}
+  endStream(socket);
   pauseBtn.textContent = "Resume";
-  setStatus("Paused.");
-  // Keep the Deepgram connection (and its token) alive while paused, without sending audio.
-  keepAliveTimer = setInterval(function () {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      try { socket.send(JSON.stringify({ type: "KeepAlive" })); } catch {}
-    }
-  }, 8000);
+  setStatus("Paused. Nothing is being sent or billed.");
 }
 
+// Resuming opens a brand-new stream; the mic/tab audio was never stopped, so no prompt.
 async function resumeListening() {
   if (!running || !paused) return;
-  paused = false;
-  if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
-  pauseBtn.textContent = "Pause";
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    // The connection dropped or its token expired while paused — reconnect quietly.
-    // The existing mic/tab-audio stream and recorder are untouched, so no permission prompt.
-    try {
-      await connectSocket();
-    } catch (error) {
-      paused = true;
-      pauseBtn.textContent = "Resume";
-      setStatus(error.message || "Could not resume.");
-    }
-  } else {
-    setStatus("Listening...");
+  pauseBtn.disabled = true;
+  try {
+    paused = false;
+    finalTranscript = "";
+    renderLiveTranscript("", "");
+    pauseBtn.textContent = "Pause";
+    await connectSocket();
+  } catch (error) {
+    paused = true;
+    pauseBtn.textContent = "Resume";
+    setStatus(error.message || "Could not resume.");
+  } finally {
+    pauseBtn.disabled = false;
   }
 }
 
@@ -540,9 +643,6 @@ function extractLine(text, label) {
 stopBtn.addEventListener("click", stopListening);
 
 function stopListening() {
-  running = false;
-  if (recorder) { try { recorder.stop(); } catch {} }
-  if (socket) { try { socket.close(); } catch {} }
   cleanup();
   setStatus("Stopped.");
 }
@@ -550,14 +650,18 @@ function stopListening() {
 function cleanup() {
   running = false;
   paused = false;
-  pendingPauseChunk = false;
-  if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+  finalTranscript = "";
+  const ws = socket;
+  socket = null;
+  if (ws) { ws._ending = true; try { ws.close(); } catch {} }
   startBtn.disabled = false;
   pauseBtn.disabled = true;
   pauseBtn.textContent = "Pause";
   stopBtn.disabled = true;
-  if (recorder) { try { recorder.stop(); } catch {} recorder = null; }
-  if (socket) { try { socket.close(); } catch {} socket = null; }
+  if (workletNode) { try { workletNode.port.onmessage = null; workletNode.disconnect(); } catch {} workletNode = null; }
+  if (sourceNode) { try { sourceNode.disconnect(); } catch {} sourceNode = null; }
+  if (muteNode) { try { muteNode.disconnect(); } catch {} muteNode = null; }
+  if (audioCtx) { try { audioCtx.close(); } catch {} audioCtx = null; }
   if (stream) {
     stream.getTracks().forEach(function (track) { track.stop(); });
     if (stream._displaySource) stream._displaySource.getTracks().forEach(function (track) { track.stop(); });
@@ -575,5 +679,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 </script>
+
 </body>
 </html>
