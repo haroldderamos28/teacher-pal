@@ -173,6 +173,9 @@ let finalTranscript = "";
 // briefly instead of thrown away, so it can join the start of the student's next turn.
 const HOLD_SHORT_MS = 8000;
 let heldAt = 0;
+// If the connection drops on its own, reconnect automatically up to this many times in a row.
+const MAX_RECONNECTS = 3;
+let reconnectAttempts = 0;
 let holdTimer = null;
 
 const startBtn = document.getElementById("startBtn");
@@ -370,9 +373,14 @@ async function connectSocket() {
       max_endpoint_delay_ms: translating ? 3000 : 2500,
       endpoint_sensitivity: translating ? -0.5 : -0.3, // below 0 = less eager to cut off
       context: {
+        // Speech-to-text tends to "fix" grammar as it writes (e.g. hearing "she doesn't"
+        // when the student said "she don't"), which hides the very mistakes the teacher
+        // needs to see. This background tells Soniox the speaker is a learner.
         general: [
           { key: "domain", value: "Online English lesson" },
           { key: "topic", value: "Conversation practice between an ESL teacher and a student" },
+          { key: "speaker", value: "Non-native English learner who often makes grammar mistakes, such as wrong verb forms, missing articles and wrong prepositions" },
+          { key: "transcription style", value: "Verbatim: write exactly what is said, keeping the speaker's grammar mistakes as spoken" },
         ],
       },
     }));
@@ -388,11 +396,14 @@ async function connectSocket() {
     if (data.error_code) {
       console.error("Soniox error:", data);
       ws._errored = true; // keep this message on screen when the connection then closes
-      if (ws === socket) setStatus(`Voice engine error: ${data.error_message || data.error_code}. Press Pause, then Resume to reconnect.`);
+      if (ws === socket) setStatus(`Voice engine error: ${data.error_message || data.error_code}.`);
       return;
     }
     // Messages from a stream we've already replaced (e.g. after a language switch) are ignored.
     if (ws !== socket) return;
+
+    // Words are coming through, so the connection is healthy again.
+    if (data.tokens && data.tokens.length) reconnectAttempts = 0;
 
     let newFinal = "";
     let interim = "";
@@ -443,8 +454,22 @@ async function connectSocket() {
     console.log("Soniox closed:", event.code, event.reason);
     if (ws !== socket) return;
     socket = null;
-    // Closing is expected when we paused or switched language; otherwise tell the teacher.
-    if (running && !paused && !ws._ending && !ws._errored) {
+    // Closing is expected when we paused or switched language. Anything else (a dropped
+    // connection, a Soniox timeout) gets an automatic reconnect, so the teacher doesn't
+    // have to do anything mid-lesson. Words already heard are kept.
+    if (!running || paused || ws._ending) return;
+    if (reconnectAttempts < MAX_RECONNECTS) {
+      reconnectAttempts++;
+      setStatus("Connection dropped — reconnecting...");
+      setTimeout(async function () {
+        if (!running || paused || socket) return; // stopped, paused or already reconnected
+        try {
+          await connectSocket();
+        } catch (error) {
+          setStatus((error.message || "Could not reconnect.") + " Press Pause, then Resume to try again.");
+        }
+      }, 1000 * reconnectAttempts);
+    } else {
       setStatus(`Voice engine disconnected (${event.code}). Press Pause, then Resume to reconnect.`);
     }
   };
@@ -533,6 +558,7 @@ async function resumeListening() {
   pauseBtn.disabled = true;
   try {
     paused = false;
+    reconnectAttempts = 0;
     finalTranscript = "";
     clearHold();
     renderLiveTranscript("", "");
@@ -714,7 +740,11 @@ function extractLine(text, label) {
     if (nextIndex !== -1) value = value.slice(0, nextIndex);
   }
 
-  return value.replace(/\n/g, " ").trim();
+  value = value.replace(/\n/g, " ").trim();
+  // The AI sometimes types a placeholder instead of leaving a section empty
+  // (e.g. "<leave blank>", "None", "N/A"); treat those as empty so nothing odd shows.
+  if (/^<[^>]*>$/.test(value) || /^\(?(leave (this )?blank|blank|none|n\/a|-)\)?\.?$/i.test(value)) return "";
+  return value;
 }
 
 stopBtn.addEventListener("click", stopListening);
