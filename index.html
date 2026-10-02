@@ -143,6 +143,7 @@ const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
 const SONIOX_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const SONIOX_MODEL = "stt-rt-v5";
 const TARGET_RATE = 16000; // audio is sent to Soniox as 16 kHz mono 16-bit PCM
+const LONG_TALK_WORDS = 40; // if a student talks this long without pausing, send what's finished
 
 // When "Support language" is set to anything but English, we treat it as the student's
 // own language: Soniox listens for THAT language (plus English, since beginners mix), and
@@ -348,8 +349,10 @@ async function connectSocket() {
       num_channels: 1,
       language_hints: languageHints,
       enable_endpoint_detection: true,
-      // Beginners pause longer mid-thought; give them more time before "end of utterance".
-      max_endpoint_delay_ms: translating ? 2500 : 1500,
+      // How long a pause must be before Soniox decides the student has finished their
+      // thought. Learners pause mid-sentence a lot, so we lean towards waiting.
+      max_endpoint_delay_ms: translating ? 3000 : 2500,
+      endpoint_sensitivity: translating ? -0.5 : -0.3, // below 0 = less eager to cut off
       context: {
         general: [
           { key: "domain", value: "Online English lesson" },
@@ -384,31 +387,22 @@ async function connectSocket() {
       else interim += token.text;
     }
 
-    const minWords = parseInt(minWordsEl.value, 10);
-
     if (newFinal) {
       finalTranscript += newFinal;
 
+      // Normally we wait until the student actually stops talking (the endpoint below)
+      // and send the whole thought as one. Mid-thought breaths often get a period, so
+      // acting on punctuation alone cut students off. Safety net for long talkers: once
+      // the finished sentences add up to LONG_TALK_WORDS, send those now so nothing waits
+      // forever. (Translation mode never splits early — beginners pause a lot.)
       if (!isTranslating()) {
-        // English mode: send each complete sentence (ending in . ? !) the moment it's
-        // finalized — don't wait for a pause, so fluent speech still gets analyzed.
         const split = splitComplete(finalTranscript);
-        if (split.sentences.length) {
-          let carry = "";
-          for (const sentence of split.sentences) {
-            if (wordCount(sentence) >= minWords) {
-              analyzeSentence(sentence);
-            } else {
-              // Too short to stand on its own (e.g. "Ok." before more speech follows) —
-              // keep it so it merges with what comes next instead of being dropped.
-              carry += sentence + " ";
-            }
-          }
-          finalTranscript = carry + split.remainder.replace(/^\s+/, "");
+        const done = split.sentences.join(" ");
+        if (split.sentences.length && wordCount(done) >= LONG_TALK_WORDS) {
+          analyzeSentence(done);
+          finalTranscript = split.remainder.replace(/^\s+/, "");
         }
       }
-      // Translation mode: a hesitant beginner's pauses often get mis-punctuated, so we
-      // don't act on punctuation — just keep collecting until the end of the utterance.
     }
 
     renderLiveTranscript(finalTranscript.trim(), interim);
