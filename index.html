@@ -153,7 +153,7 @@ const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
 const SONIOX_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const SONIOX_MODEL = "stt-rt-v5";
 const TARGET_RATE = 16000; // audio is sent to Soniox as 16 kHz mono 16-bit PCM
-const LONG_TALK_WORDS = 40; // if a student talks this long without pausing, send what's finished
+const LONG_TALK_WORDS = 100; // only if a student talks this long without ever pausing, send what's finished
 
 // When "Support language" is set to anything but English, we treat it as the student's
 // own language: Soniox listens for THAT language (plus English, since beginners mix), and
