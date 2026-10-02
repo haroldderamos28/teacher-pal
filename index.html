@@ -169,6 +169,11 @@ let muteNode = null;
 let running = false;
 let paused = false;
 let finalTranscript = "";
+// A turn shorter than the minimum (e.g. "Yesterday…" followed by a thinking pause) is held
+// briefly instead of thrown away, so it can join the start of the student's next turn.
+const HOLD_SHORT_MS = 8000;
+let heldAt = 0;
+let holdTimer = null;
 
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -399,6 +404,12 @@ async function connectSocket() {
     }
 
     if (newFinal) {
+      if (heldAt) {
+        // New speech arrived: a short bit held from the last turn joins this one if it's
+        // recent; if it's gone stale, it's dropped.
+        if (Date.now() - heldAt > HOLD_SHORT_MS) finalTranscript = "";
+        clearHold();
+      }
       finalTranscript += newFinal;
 
       // Normally we wait until the student actually stops talking (the endpoint below)
@@ -444,9 +455,34 @@ async function connectSocket() {
 function flushLeftover() {
   const leftover = finalTranscript.trim();
   const minWords = parseInt(minWordsEl.value, 10);
-  if (leftover && (isTranslating() || wordCount(leftover) >= minWords)) analyzeSentence(leftover);
-  finalTranscript = "";
-  renderLiveTranscript("", "");
+  clearHold();
+  if (!leftover) {
+    finalTranscript = "";
+    renderLiveTranscript("", "");
+    return;
+  }
+  if (isTranslating() || wordCount(leftover) >= minWords) {
+    analyzeSentence(leftover);
+    finalTranscript = "";
+    renderLiveTranscript("", "");
+    return;
+  }
+  // Too short on its own: hold it (it stays visible in Live Stream) in case the student
+  // carries on. If nothing follows in time, quietly drop it.
+  heldAt = Date.now();
+  renderLiveTranscript(leftover, "");
+  holdTimer = setTimeout(function () {
+    if (heldAt && Date.now() - heldAt >= HOLD_SHORT_MS) {
+      finalTranscript = "";
+      heldAt = 0;
+      renderLiveTranscript("", "");
+    }
+  }, HOLD_SHORT_MS);
+}
+
+function clearHold() {
+  heldAt = 0;
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
 }
 
 // Politely ends a stream: Soniox finalizes the last words, sends them, then closes.
@@ -466,6 +502,7 @@ languageEl.addEventListener("change", async function () {
   const old = socket;
   socket = null; // stop sending audio to the old stream right away
   finalTranscript = "";
+  clearHold();
   renderLiveTranscript("", "");
   if (old) { old._ending = true; try { old.close(); } catch {} }
   setStatus(isTranslating() ? "Switching to " + languageEl.options[languageEl.selectedIndex].text + "..." : "Switching to English...");
@@ -497,6 +534,7 @@ async function resumeListening() {
   try {
     paused = false;
     finalTranscript = "";
+    clearHold();
     renderLiveTranscript("", "");
     pauseBtn.textContent = "Pause";
     await connectSocket();
@@ -690,6 +728,7 @@ function cleanup() {
   running = false;
   paused = false;
   finalTranscript = "";
+  clearHold();
   const ws = socket;
   socket = null;
   if (ws) { ws._ending = true; try { ws.close(); } catch {} }
