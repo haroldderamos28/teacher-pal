@@ -36,6 +36,9 @@
     .thinking { color: #9ca3af; font-style: italic; }
     .error { color: #dc2626; background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; white-space: pre-wrap; }
     .empty { color: #9ca3af; font-size: 15px; }
+    .said { font-size: 14px; color: #6b7280; font-style: italic; margin-bottom: 8px; }
+    .engine-block { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    .engine-tag { display: inline-block; font-size: 11px; font-weight: bold; color: #374151; background: #eef2f7; border-radius: 999px; padding: 3px 10px; margin-bottom: 8px; }
     @media (max-width: 800px) { .coach-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -117,6 +120,13 @@
           </select>
         </label>
         <label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives &amp; vocabulary)</label>
+        <label>AI engine:
+          <select id="engine">
+            <option value="basic" selected>Basic (free AI)</option>
+            <option value="haiku">Haiku</option>
+            <option value="compare">Compare both</option>
+          </select>
+        </label>
         <button id="startBtn">Start Listening</button>
         <button id="pauseBtn" disabled>Pause</button>
         <button id="stopBtn" disabled>Stop</button>
@@ -172,6 +182,7 @@ const languageEl = document.getElementById("language");
 const extrasEl = document.getElementById("extras");
 const audioSourceEl = document.getElementById("audioSource");
 const minWordsEl = document.getElementById("minWords");
+const engineEl = document.getElementById("engine");
 
 function wordCount(text) {
   const trimmed = text.trim();
@@ -505,33 +516,66 @@ function renderLiveTranscript(finalText, interimText) {
   `;
 }
 
-async function analyzeSentence(text) {
-  // Capture the mode at call time so a dropdown change while this request is still
+const ENGINE_NAMES = { basic: "Basic (free AI)", haiku: "Haiku" };
+
+function analyzeSentence(text) {
+  // Capture the settings at call time so a dropdown change while this request is still
   // in flight doesn't change how its own result gets rendered.
   const translating = isTranslating();
+  const choice = engineEl.value;
+  const engines = choice === "compare" ? ["basic", "haiku"] : [choice];
 
   const card = document.createElement("div");
   card.className = "correction-card";
-  card.dataset.translating = translating ? "1" : "0";
-  card.innerHTML = `<div class="thinking">${translating ? "Translating..." : "Analyzing..."}</div>`;
 
   if (results.children.length === 1 && results.firstElementChild.classList.contains("empty")) {
     results.innerHTML = "";
   }
   results.prepend(card);
 
+  const settings = {
+    text: text,
+    mode: modeEl.value,
+    level: levelEl.value,
+    language: languageEl.value,
+    extras: extrasEl.checked,
+    translate: translating,
+  };
+
+  if (engines.length === 1) {
+    // One engine: the card itself shows the result.
+    card.dataset.translating = translating ? "1" : "0";
+    runAnalysis(card, null, settings, engines[0]);
+    return;
+  }
+
+  // Compare: the student's words on top, then each engine's answer in its own section,
+  // with how long each one took, so you can judge them side by side.
+  card.innerHTML = `<div class="said">${escapeHtml(text)}</div>`;
+  for (const engine of engines) {
+    const section = document.createElement("div");
+    section.className = "engine-block";
+    const tag = document.createElement("div");
+    tag.className = "engine-tag";
+    tag.textContent = ENGINE_NAMES[engine];
+    const body = document.createElement("div");
+    body.dataset.translating = translating ? "1" : "0";
+    section.append(tag, body);
+    card.append(section);
+    runAnalysis(body, tag, settings, engine);
+  }
+}
+
+async function runAnalysis(card, tag, settings, engine) {
+  const translating = settings.translate;
+  card.innerHTML = `<div class="thinking">${translating ? "Translating..." : "Analyzing..."}</div>`;
+  const started = performance.now();
+
   try {
     const response = await fetch(WORKER, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: text,
-        mode: modeEl.value,
-        level: levelEl.value,
-        language: languageEl.value,
-        extras: extrasEl.checked,
-        translate: translating,
-      }),
+      body: JSON.stringify(Object.assign({}, settings, { engine: engine })),
     });
 
     if (!response.ok) {
@@ -569,6 +613,7 @@ async function analyzeSentence(text) {
       }
     }
     renderCorrection(card, generated);
+    if (tag) tag.textContent = ENGINE_NAMES[engine] + " · " + ((performance.now() - started) / 1000).toFixed(1) + "s";
   } catch (error) {
     console.error("Analysis error:", error);
     card.innerHTML = `<div class="error">${escapeHtml(error.message)}</div>`;
