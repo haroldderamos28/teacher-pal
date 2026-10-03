@@ -95,11 +95,20 @@
     body.live .setup-head, body.live .tier-section, body.live .rules-note { display: none; }
 
     /* Live stream + corrections */
-    .coach-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
-    .panel { min-height: 520px; overflow: hidden; display: flex; flex-direction: column; }
+    /* Side by side at any window width. Drag the handle in the middle to give either panel more
+       room; each panel scrolls on its own, so they never squash into each other. */
+    .coach-grid { display: grid; grid-template-columns: minmax(200px, var(--split, 1fr)) 16px minmax(240px, 1fr); height: max(420px, calc(100vh - 32px)); }
+    .panel { min-height: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+    .splitter { display: flex; align-items: center; justify-content: center; cursor: col-resize; touch-action: none; outline: none; }
+    .splitter::before { content: ""; width: 5px; height: 56px; border-radius: 999px; background: rgba(27,42,74,0.16); transition: background .15s, height .15s; }
+    .splitter:hover::before, .splitter:focus-visible::before, .splitter.dragging::before { background: var(--teal); height: 88px; }
+    body.resizing { cursor: col-resize; user-select: none; }
+    .settings-toggle { display: none; background: transparent; color: var(--ink); border: 1.5px solid rgba(27,42,74,0.18); padding: 9px 16px; font-size: 13px; }
+    body.live .settings-toggle { display: inline-flex; align-items: center; gap: 6px; }
+    body.live:not(.show-settings) .settings-grid { display: none; }
     .panel-header { display: flex; align-items: center; padding: 18px 24px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); }
     .panel-header .info { margin-left: 6px; }
-    .panel-body { padding: 20px 24px; flex: 1; }
+    .panel-body { padding: 20px 24px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
     #liveTranscript { font-size: 22px; line-height: 1.6; min-height: 100px; }
     .final-line { margin-bottom: 10px; }
     .interim { color: #A3A9B3; }
@@ -159,8 +168,33 @@
     .auth-msg { margin-top: 14px; font-size: 14px; line-height: 1.45; color: var(--teal); min-height: 1em; }
     .auth-msg.bad { color: #B4452F; }
 
+    /* Narrow windows (e.g. TeachPaL next to the lesson tab): tighter spacing and text. */
+    @media (max-width: 1000px) {
+      .container { padding: 16px; gap: 16px; }
+      .topbar { padding: 10px 16px; }
+      .brand img { height: 38px; }
+      .controls { padding: 18px 18px; gap: 16px; }
+      .setup-title { font-size: 20px; }
+      .settings-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+      .panel-header { padding: 12px 16px; }
+      .panel-body { padding: 14px 16px; }
+      #liveTranscript { font-size: 18px; }
+      .box { padding: 9px 11px 10px; }
+      .box-corrected .box-text, .box-translation .box-text { font-size: 16px; }
+      .box-natural .box-text { font-size: 15px; }
+      .box-why .box-text, .box-alt .box-text, .box-vocab .box-text, .box-colloc .box-text { font-size: 13px; }
+      .copy-btn { padding: 3px 9px; font-size: 11px; }
+      .box-head { padding-right: 70px; }
+      .coach-grid { grid-template-columns: minmax(160px, var(--split, 1fr)) 14px minmax(200px, 1fr); }
+    }
+    /* Phones only: stack the panels. */
+    @media (max-width: 560px) {
+      .coach-grid { grid-template-columns: 1fr; height: auto; gap: 16px; }
+      .splitter { display: none; }
+      .panel { height: auto; min-height: 360px; }
+      .panel-body { overflow: visible; }
+    }
     @media (max-width: 900px) {
-      .coach-grid { grid-template-columns: 1fr; }
       .tier-cards { grid-template-columns: 1fr; }
       .field-wide { grid-column: auto; }
       .topbar, .container { padding-left: 16px; padding-right: 16px; }
@@ -305,6 +339,7 @@
         <button id="pauseBtn" disabled title="Pause listening and billing between students or while waiting. Press Resume to continue — no new permission needed.">Pause</button>
         <button id="stopBtn" disabled title="End the session and release the microphone or tab sharing.">Stop</button>
         <span class="class-note" id="classNote" aria-live="off"></span>
+        <button type="button" class="settings-toggle" id="settingsToggle" aria-expanded="false" title="Show or hide the settings during a class">⚙ Settings</button>
       </div>
       <div class="status" id="status">Ready.</div>
       <div class="rules-note">1 block = up to 30 minutes · classes under 3 minutes are free · paused time isn't counted</div>
@@ -317,6 +352,7 @@
           <div id="liveTranscript"><div class="empty">Start listening and speak normally.</div></div>
         </div>
       </div>
+      <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels (drag, or use the arrow keys; double-click to reset)" title="Drag to resize · double-click to reset" tabindex="0"></div>
       <div class="panel card">
         <div class="panel-header">Corrections<span class="info" tabindex="0" role="img" aria-label="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why." data-tip="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why.">i</span></div>
         <div class="panel-body" id="results"><div class="empty">Corrections will appear here.</div></div>
@@ -1577,6 +1613,67 @@ function cleanup(endDelayMs) {
   }
   audioSourceEl.disabled = false;
   return ended;
+}
+
+// ---- Resizable split between Live Stream and Corrections (remembered on this computer) ----
+const coachGrid = document.querySelector(".coach-grid");
+const splitter = document.getElementById("splitter");
+const SPLIT_KEY = "teachpal_split";
+function setSplit(percent, save) {
+  const p = Math.min(75, Math.max(25, percent));
+  coachGrid.style.setProperty("--split", p + "%");
+  splitter.setAttribute("aria-valuenow", String(Math.round(p)));
+  if (save) { try { localStorage.setItem(SPLIT_KEY, String(p)); } catch {} }
+}
+function resetSplit() {
+  coachGrid.style.removeProperty("--split");
+  splitter.setAttribute("aria-valuenow", "50");
+  try { localStorage.removeItem(SPLIT_KEY); } catch {}
+}
+if (coachGrid && splitter) {
+  splitter.setAttribute("aria-valuemin", "25");
+  splitter.setAttribute("aria-valuemax", "75");
+  splitter.setAttribute("aria-valuenow", "50");
+  try { const saved = parseFloat(localStorage.getItem(SPLIT_KEY)); if (saved) setSplit(saved, false); } catch {}
+  const percentAt = function (clientX) {
+    const r = coachGrid.getBoundingClientRect();
+    return ((clientX - r.left) / r.width) * 100;
+  };
+  splitter.addEventListener("pointerdown", function (event) {
+    event.preventDefault();
+    splitter.setPointerCapture && splitter.setPointerCapture(event.pointerId);
+    splitter.classList.add("dragging");
+    document.body.classList.add("resizing");
+    const move = function (e) { setSplit(percentAt(e.clientX), false); };
+    const up = function (e) {
+      splitter.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      splitter.removeEventListener("pointermove", move);
+      splitter.removeEventListener("pointerup", up);
+      splitter.removeEventListener("pointercancel", up);
+      setSplit(percentAt(e.clientX), true);
+    };
+    splitter.addEventListener("pointermove", move);
+    splitter.addEventListener("pointerup", up);
+    splitter.addEventListener("pointercancel", up);
+  });
+  splitter.addEventListener("dblclick", resetSplit);
+  splitter.addEventListener("keydown", function (event) {
+    const now = parseFloat(splitter.getAttribute("aria-valuenow")) || 50;
+    if (event.key === "ArrowLeft") { setSplit(now - 5, true); event.preventDefault(); }
+    else if (event.key === "ArrowRight") { setSplit(now + 5, true); event.preventDefault(); }
+    else if (event.key === "Home" || event.key === "Enter") { resetSplit(); event.preventDefault(); }
+  });
+}
+
+// During a class the settings fold away (more room for the panels); this shows them again.
+const settingsToggle = document.getElementById("settingsToggle");
+if (settingsToggle) {
+  settingsToggle.addEventListener("click", function () {
+    const show = !document.body.classList.contains("show-settings");
+    document.body.classList.toggle("show-settings", show);
+    settingsToggle.setAttribute("aria-expanded", show ? "true" : "false");
+  });
 }
 
 function escapeHtml(value) {
