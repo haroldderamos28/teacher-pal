@@ -39,6 +39,11 @@
     .said { font-size: 14px; color: #6b7280; font-style: italic; margin-bottom: 8px; }
     .engine-block { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
     .engine-tag { display: inline-block; font-size: 11px; font-weight: bold; color: #374151; background: #eef2f7; border-radius: 999px; padding: 3px 10px; margin-bottom: 8px; }
+    .field { display: inline-flex; align-items: center; gap: 4px; }
+    .info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #e5e7eb; color: #374151; font: bold 11px/1 Arial, sans-serif; cursor: help; flex-shrink: 0; }
+    .info:hover, .info:focus { background: #111827; color: #fff; outline: none; }
+    .info:hover::after, .info:focus::after { content: attr(data-tip); position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: max-content; max-width: min(260px, 80vw); background: #111827; color: #fff; padding: 8px 10px; border-radius: 8px; font: normal 12px/1.45 Arial, sans-serif; text-align: left; white-space: normal; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .panel-header .info { margin-left: 6px; vertical-align: middle; }
     @media (max-width: 800px) { .coach-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -48,7 +53,7 @@
 
     <div class="controls">
       <div class="control-row">
-        <label>Mode:
+        <span class="field"><label>Mode:
           <select id="mode">
             <option value="accurate">Accurate</option>
             <option value="natural" selected>Natural</option>
@@ -58,15 +63,15 @@
             <option value="concise">Concise</option>
             <option value="student">Student-friendly</option>
           </select>
-        </label>
-        <label>Level:
+        </label><span class="info" tabindex="0" role="img" aria-label="How the AI rewrites what the student said. Natural = sounds like a native speaker. Business / Professional = workplace English. Concise = shorter. Student-friendly = simplest wording." data-tip="How the AI rewrites what the student said. Natural = sounds like a native speaker. Business / Professional = workplace English. Concise = shorter. Student-friendly = simplest wording.">i</span></span>
+        <span class="field"><label>Level:
           <select id="level">
             <option value="basic">Basic</option>
             <option value="intermediate" selected>Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-        </label>
-        <label>Support language:
+        </label><span class="info" tabindex="0" role="img" aria-label="The student's English level. Suggestions and vocabulary are kept at this level." data-tip="The student's English level. Suggestions and vocabulary are kept at this level.">i</span></span>
+        <span class="field"><label>Support language:
           <select id="language">
             <option value="en" selected>English</option>
             <option value="ja">Japanese</option>
@@ -103,14 +108,14 @@
             <option value="lt">Lithuanian</option>
             <option value="ca">Catalan</option>
           </select>
-        </label>
-        <label>Audio source:
+        </label><span class="info" tabindex="0" role="img" aria-label="Leave on English for English-only students. For beginners who sometimes use their own language, pick that language once: English gets corrected, their language gets translated, and WHY notes are written in it." data-tip="Leave on English for English-only students. For beginners who sometimes use their own language, pick that language once: English gets corrected, their language gets translated, and WHY notes are written in it.">i</span></span>
+        <span class="field"><label>Audio source:
           <select id="audioSource">
             <option value="mic" selected>Microphone</option>
             <option value="tab">Tab / window audio (share screen)</option>
           </select>
-        </label>
-        <label>Only analyze sentences of at least:
+        </label><span class="info" tabindex="0" role="img" aria-label="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'." data-tip="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'.">i</span></span>
+        <span class="field"><label>Only analyze sentences of at least:
           <select id="minWords">
             <option value="1">1 word</option>
             <option value="4">4 words</option>
@@ -118,31 +123,38 @@
             <option value="8">8 words</option>
             <option value="10">10 words</option>
           </select>
-        </label>
-        <label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives &amp; vocabulary)</label>
-        <label>AI engine:
+        </label><span class="info" tabindex="0" role="img" aria-label="Short replies like 'Yes' or 'OK' are skipped. Only things the student says with at least this many words get corrected. (Translation mode ignores this.)" data-tip="Short replies like 'Yes' or 'OK' are skipped. Only things the student says with at least this many words get corrected. (Translation mode ignores this.)">i</span></span>
+        <span class="field"><label>Student pace:
+          <select id="pace">
+            <option value="slow">Slow</option>
+            <option value="normal" selected>Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </label><span class="info" tabindex="0" role="img" aria-label="How long to wait before treating the student as finished. Slow gives hesitant beginners time to find words. Fast sends corrections sooner for quick talkers. Changing it mid-lesson reconnects quietly." data-tip="How long to wait before treating the student as finished. Slow gives hesitant beginners time to find words. Fast sends corrections sooner for quick talkers. Changing it mid-lesson reconnects quietly.">i</span></span>
+        <span class="field"><label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives &amp; vocabulary)</label><span class="info" tabindex="0" role="img" aria-label="Adds other ways to say it and one useful vocabulary word to each correction." data-tip="Adds other ways to say it and one useful vocabulary word to each correction.">i</span></span>
+        <span class="field"><label>AI engine:
           <select id="engine">
             <option value="basic" selected>Basic (free AI)</option>
             <option value="haiku">Haiku</option>
             <option value="compare">Compare both</option>
           </select>
-        </label>
-        <button id="startBtn">Start Listening</button>
-        <button id="pauseBtn" disabled>Pause</button>
-        <button id="stopBtn" disabled>Stop</button>
+        </label><span class="info" tabindex="0" role="img" aria-label="Basic = free AI. Haiku = more accurate and usually faster (costs a little per correction). Compare both = shows both answers on each card so you can judge them." data-tip="Basic = free AI. Haiku = more accurate and usually faster (costs a little per correction). Compare both = shows both answers on each card so you can judge them.">i</span></span>
+        <button id="startBtn" title="Start listening to the student. Your browser will ask for microphone or tab-sharing permission.">Start Listening</button>
+        <button id="pauseBtn" disabled title="Pause listening and billing between students or while waiting. Press Resume to continue — no new permission needed.">Pause</button>
+        <button id="stopBtn" disabled title="End the session and release the microphone or tab sharing.">Stop</button>
       </div>
       <div class="status" id="status">Ready.</div>
     </div>
 
     <div class="coach-grid">
       <div class="panel">
-        <div class="panel-header">Live Stream</div>
+        <div class="panel-header">Live Stream<span class="info" tabindex="0" role="img" aria-label="What the student is saying right now. Grey text is still being worked out and may change." data-tip="What the student is saying right now. Grey text is still being worked out and may change.">i</span></div>
         <div class="panel-body">
           <div id="liveTranscript"><div class="empty">Start listening and speak normally.</div></div>
         </div>
       </div>
       <div class="panel">
-        <div class="panel-header">Corrections</div>
+        <div class="panel-header">Corrections<span class="info" tabindex="0" role="img" aria-label="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why." data-tip="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why.">i</span></div>
         <div class="panel-body" id="results"><div class="empty">Corrections will appear here.</div></div>
       </div>
     </div>
@@ -153,7 +165,15 @@ const WORKER = "https://blue-base-6bdc.haroldderamos28.workers.dev";
 const SONIOX_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 const SONIOX_MODEL = "stt-rt-v5";
 const TARGET_RATE = 16000; // audio is sent to Soniox as 16 kHz mono 16-bit PCM
-const LONG_TALK_WORDS = 100; // only if a student talks this long without ever pausing, send what's finished
+// "Student pace" presets. delay/sensitivity go to Soniox (its pause limit is 3 s); extraHold
+// is extra waiting the page adds on top for slow speakers, cancelled if they keep talking;
+// longTalk = if a student talks this long without ever pausing, send what's finished.
+const PACES = {
+  slow:   { delay: 3000, sensitivity: -0.6, extraHold: 1200, longTalk: 120 },
+  normal: { delay: 2500, sensitivity: -0.3, extraHold: 0,    longTalk: 100 },
+  fast:   { delay: 1500, sensitivity: 0,    extraHold: 0,    longTalk: 60 },
+};
+function currentPace() { return PACES[paceEl.value] || PACES.normal; }
 
 // When "Support language" is set to anything but English, we treat it as the student's
 // own language: Soniox listens for THAT language (plus English, since beginners mix), and
@@ -177,6 +197,7 @@ let heldAt = 0;
 const MAX_RECONNECTS = 3;
 let reconnectAttempts = 0;
 let holdTimer = null;
+let endpointTimer = null; // slow pace: extra wait after the student seems finished
 
 const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
@@ -191,6 +212,7 @@ const extrasEl = document.getElementById("extras");
 const audioSourceEl = document.getElementById("audioSource");
 const minWordsEl = document.getElementById("minWords");
 const engineEl = document.getElementById("engine");
+const paceEl = document.getElementById("pace");
 
 function wordCount(text) {
   const trimmed = text.trim();
@@ -351,6 +373,7 @@ async function connectSocket() {
   if (!running || paused) return;
 
   const translating = isTranslating();
+  const pace = currentPace();
   // Beginners often mix their own language with English, so listen for both.
   const languageHints = translating ? [sonioxLanguage(languageEl.value), "en"] : ["en"];
 
@@ -369,9 +392,10 @@ async function connectSocket() {
       language_hints: languageHints,
       enable_endpoint_detection: true,
       // How long a pause must be before Soniox decides the student has finished their
-      // thought. Learners pause mid-sentence a lot, so we lean towards waiting.
-      max_endpoint_delay_ms: translating ? 3000 : 2500,
-      endpoint_sensitivity: translating ? -0.5 : -0.3, // below 0 = less eager to cut off
+      // thought, from the "Student pace" setting. Translation mode (beginners) waits a bit
+      // longer still. Sensitivity below 0 = less eager to cut off.
+      max_endpoint_delay_ms: Math.min(3000, pace.delay + (translating ? 500 : 0)),
+      endpoint_sensitivity: Math.max(-1, pace.sensitivity - (translating ? 0.2 : 0)),
       context: {
         // Speech-to-text tends to "fix" grammar as it writes (e.g. hearing "she doesn't"
         // when the student said "she don't"), which hides the very mistakes the teacher
@@ -414,6 +438,9 @@ async function connectSocket() {
       else interim += token.text;
     }
 
+    // The student kept talking during the slow-pace extra wait: cancel it, keep collecting.
+    if (endpointTimer && (newFinal || interim.trim())) clearEndpointTimer();
+
     if (newFinal) {
       if (heldAt) {
         // New speech arrived: a short bit held from the last turn joins this one if it's
@@ -431,7 +458,7 @@ async function connectSocket() {
       if (!isTranslating()) {
         const split = splitComplete(finalTranscript);
         const done = split.sentences.join(" ");
-        if (split.sentences.length && wordCount(done) >= LONG_TALK_WORDS) {
+        if (split.sentences.length && wordCount(done) >= currentPace().longTalk) {
           analyzeSentence(done);
           finalTranscript = split.remainder.replace(/^\s+/, "");
         }
@@ -441,8 +468,20 @@ async function connectSocket() {
     renderLiveTranscript(finalTranscript.trim(), interim);
 
     // End of an utterance (the student stopped talking), or the stream is wrapping up:
-    // send whatever's left as one complete thought.
-    if (endpoint || data.finished) flushLeftover();
+    // send whatever's left as one complete thought. On slow pace, wait a little longer
+    // first in case the student is only searching for a word.
+    if (data.finished) {
+      clearEndpointTimer();
+      flushLeftover();
+    } else if (endpoint) {
+      const extra = currentPace().extraHold;
+      if (extra > 0) {
+        clearEndpointTimer();
+        endpointTimer = setTimeout(function () { endpointTimer = null; flushLeftover(); }, extra);
+      } else {
+        flushLeftover();
+      }
+    }
   };
 
   ws.onerror = function (event) {
@@ -510,6 +549,10 @@ function clearHold() {
   if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
 }
 
+function clearEndpointTimer() {
+  if (endpointTimer) { clearTimeout(endpointTimer); endpointTimer = null; }
+}
+
 // Politely ends a stream: Soniox finalizes the last words, sends them, then closes.
 function endStream(ws) {
   if (!ws) return;
@@ -520,22 +563,31 @@ function endStream(ws) {
   } catch {}
 }
 
-// Changing the language needs a fresh stream with new language hints. The mic/tab audio
-// keeps running, so there's no new permission prompt.
-languageEl.addEventListener("change", async function () {
+// Changing the language or the student's pace needs a fresh stream with new settings.
+// The mic/tab audio keeps running, so there's no new permission prompt.
+async function restartStream(message) {
   if (!running || paused) return; // not listening (or paused) — the next connect picks this up
   const old = socket;
   socket = null; // stop sending audio to the old stream right away
   finalTranscript = "";
   clearHold();
+  clearEndpointTimer();
   renderLiveTranscript("", "");
   if (old) { old._ending = true; try { old.close(); } catch {} }
-  setStatus(isTranslating() ? "Switching to " + languageEl.options[languageEl.selectedIndex].text + "..." : "Switching to English...");
+  setStatus(message);
   try {
     await connectSocket();
   } catch (error) {
-    setStatus(error.message || "Could not switch language.");
+    setStatus(error.message || "Could not apply the change.");
   }
+}
+
+languageEl.addEventListener("change", function () {
+  restartStream(isTranslating() ? "Switching to " + languageEl.options[languageEl.selectedIndex].text + "..." : "Switching to English...");
+});
+
+paceEl.addEventListener("change", function () {
+  restartStream("Switching to " + paceEl.options[paceEl.selectedIndex].text.toLowerCase() + " pace...");
 });
 
 pauseBtn.addEventListener("click", function () {
@@ -561,6 +613,7 @@ async function resumeListening() {
     reconnectAttempts = 0;
     finalTranscript = "";
     clearHold();
+    clearEndpointTimer();
     renderLiveTranscript("", "");
     pauseBtn.textContent = "Pause";
     await connectSocket();
@@ -686,10 +739,13 @@ async function runAnalysis(card, tag, settings, engine) {
 
 // Every labeled section the AI might send, in this exact order, so extractLine() always
 // knows where one section ends and the next begins.
-const ALL_LABELS = ["CORRECTED:", "NATURAL:", "WHY:", "ALTERNATIVES:", "VOCAB:"];
+const ALL_LABELS = ["SPOKE:", "CORRECTED:", "NATURAL:", "WHY:", "ALTERNATIVES:", "VOCAB:"];
 
 function renderCorrection(card, generated) {
-  const translating = card.dataset.translating === "1";
+  // In translation mode the AI says whether the student spoke English (corrected as usual)
+  // or their own language (translated), so the labels match what's shown.
+  const spokeEnglish = /english/i.test(extractLine(generated, "SPOKE:"));
+  const translating = card.dataset.translating === "1" && !spokeEnglish;
   const corrected = extractLine(generated, "CORRECTED:");
   const natural = extractLine(generated, "NATURAL:");
   const why = extractLine(generated, "WHY:");
@@ -759,6 +815,7 @@ function cleanup() {
   paused = false;
   finalTranscript = "";
   clearHold();
+  clearEndpointTimer();
   const ws = socket;
   socket = null;
   if (ws) { ws._ending = true; try { ws.close(); } catch {} }
