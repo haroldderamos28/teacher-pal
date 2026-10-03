@@ -162,7 +162,7 @@
             <option value="intermediate" selected>Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-        </label><span class="info" tabindex="0" role="img" aria-label="The student's English level. Suggestions and vocabulary are kept at this level." data-tip="The student's English level. Suggestions and vocabulary are kept at this level.">i</span></span>
+        </label><span class="info" tabindex="0" role="img" aria-label="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. (Translation mode corrects everything.)" data-tip="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. (Translation mode corrects everything.)">i</span></span>
         <span class="field"><label>Support language:
           <select id="language">
             <option value="en" selected>English</option>
@@ -207,15 +207,6 @@
             <option value="tab">Tab / window audio (share screen)</option>
           </select>
         </label><span class="info" tabindex="0" role="img" aria-label="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'." data-tip="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'.">i</span></span>
-        <span class="field"><label>Only analyze sentences of at least:
-          <select id="minWords">
-            <option value="1">1 word</option>
-            <option value="4">4 words</option>
-            <option value="6" selected>6 words</option>
-            <option value="8">8 words</option>
-            <option value="10">10 words</option>
-          </select>
-        </label><span class="info" tabindex="0" role="img" aria-label="Short replies like 'Yes' or 'OK' are skipped. Only things the student says with at least this many words get corrected. (Translation mode ignores this.)" data-tip="Short replies like 'Yes' or 'OK' are skipped. Only things the student says with at least this many words get corrected. (Translation mode ignores this.)">i</span></span>
         <span class="field"><label>Student pace:
           <select id="pace">
             <option value="slow">Slow</option>
@@ -309,7 +300,6 @@ const levelEl = document.getElementById("level");
 const languageEl = document.getElementById("language");
 const extrasEl = document.getElementById("extras");
 const audioSourceEl = document.getElementById("audioSource");
-const minWordsEl = document.getElementById("minWords");
 const engineEl = document.getElementById("engine");
 const paceEl = document.getElementById("pace");
 const blockTypeEl = document.getElementById("blockType");
@@ -642,6 +632,11 @@ function outOfBlocks() {
   flushLeftover(); // still correct what was already heard
   stopListening(`You've run out of ${name} blocks, so listening stopped. Buy more blocks to keep coaching.`);
 }
+
+// Short replies ("Yes", "OK", "I'm fine") aren't corrected. The cut-off follows the
+// student's level: beginners say shorter things, advanced students longer ones.
+const MIN_WORDS_BY_LEVEL = { basic: 4, intermediate: 6, advanced: 8 };
+function minWordsForLevel() { return MIN_WORDS_BY_LEVEL[levelEl.value] || 6; }
 
 function wordCount(text) {
   const trimmed = text.trim();
@@ -987,7 +982,10 @@ async function connectSocket(options) {
       clearEndpointTimer();
       flushLeftover();
     } else if (endpoint) {
-      const extra = currentPace().extraHold;
+      // If what we have looks like the middle of a sentence ("...and then we", no full
+      // stop), the student is probably just thinking: wait a bit longer before sending.
+      // Any new speech cancels the wait and the thought keeps growing.
+      const extra = currentPace().extraHold + (looksUnfinished(finalTranscript) ? UNFINISHED_HOLD_MS : 0);
       if (extra > 0) {
         clearEndpointTimer();
         endpointTimer = setTimeout(function () { endpointTimer = null; flushLeftover(); }, extra);
@@ -1037,9 +1035,22 @@ async function connectSocket(options) {
 
 // Sends the unfinished leftover text for analysis. In translation mode short beginner
 // phrases still matter, so the word-count filter is skipped there.
+// Extra wait when the student stops mid-sentence.
+const UNFINISHED_HOLD_MS = 2500;
+const UNFINISHED_ENDINGS = new Set(("and but or so because then also the a an to of in on at for with from about " +
+  "my your his her their our its this that these those is are was were am be been i we you they he she it " +
+  "which who when if like um uh er ah").split(" "));
+function looksUnfinished(text) {
+  const t = text.trim();
+  if (!t) return false;
+  if (!/[.?!。？！]["')\]]*$/.test(t)) return true; // no full stop at the end
+  const words = t.toLowerCase().replace(/[.?!。？！"')\],]+$/, "").split(/\s+/);
+  return UNFINISHED_ENDINGS.has(words[words.length - 1]); // e.g. "...because." or "...and the."
+}
+
 function flushLeftover() {
   const leftover = finalTranscript.trim();
-  const minWords = parseInt(minWordsEl.value, 10);
+  const minWords = minWordsForLevel();
   clearHold();
   if (!leftover) {
     finalTranscript = "";
@@ -1217,16 +1228,19 @@ function analyzeSentence(text) {
     session_id: sessionId,
   };
 
+  // What the voice engine heard, on top of every card, so you can spot a misheard word.
+  card.innerHTML = `<div class="said" title="What the voice engine heard the student say">🎧 Heard: ${escapeHtml(text)}</div>`;
+
   if (engines.length === 1) {
-    // One engine: the card itself shows the result.
-    card.dataset.translating = translating ? "1" : "0";
-    runAnalysis(card, null, settings, engines[0]);
+    const body = document.createElement("div");
+    body.dataset.translating = translating ? "1" : "0";
+    card.append(body);
+    runAnalysis(body, null, settings, engines[0]);
     return;
   }
 
-  // Compare: the student's words on top, then each engine's answer in its own section,
-  // with how long each one took, so you can judge them side by side.
-  card.innerHTML = `<div class="said">${escapeHtml(text)}</div>`;
+  // Compare: each engine's answer in its own section, with how long each one took,
+  // so you can judge them side by side.
   for (const engine of engines) {
     const section = document.createElement("div");
     section.className = "engine-block";
