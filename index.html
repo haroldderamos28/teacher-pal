@@ -178,6 +178,16 @@
     .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
     .ghost-btn { background: transparent; color: var(--ink); border: 1.5px solid rgba(27,42,74,0.2); border-radius: 999px; font-size: 14px; font-weight: 700; padding: 11px 18px; cursor: pointer; }
     .ghost-btn:hover { background: #F7F4EF; }
+    #clearBtn { background: transparent; color: var(--muted); border: 1.5px solid rgba(27,42,74,0.18); padding: 9px 16px; font-size: 13px; }
+    #clearBtn:hover:not(:disabled) { color: var(--ink); background: rgba(27,42,74,0.05); }
+    .modal-card.small { max-width: 460px; }
+    .modal-text { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: #4A5260; }
+    .notice { margin-top: 14px; border-radius: 14px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
+    .notice.warn { background: #FBEDE8; color: #8A3F24; border: 1px solid #F0D3C5; }
+    .notice.ok { background: #EAF4F0; color: #2F6672; border: 1px solid #C3E0D6; }
+    .notice .link-btn { padding: 0; font-size: 14px; }
+    .danger-btn { background: #B4452F; color: #fff; border: 0; border-radius: 999px; font-size: 14px; font-weight: 700; padding: 11px 18px; cursor: pointer; }
+    .danger-btn:hover { background: #9C3A27; }
 
     /* Info tips */
     .info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: rgba(27,42,74,0.10); color: var(--ink); font: 700 11px/1 'Plus Jakarta Sans', system-ui, sans-serif; text-transform: none; letter-spacing: 0; cursor: help; flex-shrink: 0; }
@@ -382,6 +392,7 @@
         <button id="pauseBtn" disabled title="Pause listening and billing between students or while waiting. Press Resume to continue — no new permission needed.">Pause</button>
         <button id="stopBtn" disabled title="End the session and release the microphone or tab sharing.">Stop</button>
         <span class="class-note" id="classNote" aria-live="off"></span>
+        <button type="button" id="clearBtn" title="Clear the screen for the next student (stop the class first)">↺ Start fresh</button>
         <button type="button" id="feedbackBtn" hidden title="Open the feedback for the last Premium class">📝 Lesson feedback</button>
         <button type="button" class="settings-toggle" id="settingsToggle" aria-expanded="false" title="Show or hide the settings during a class">⚙ Settings</button>
       </div>
@@ -416,6 +427,18 @@
         <button type="button" class="primary-btn" id="fbCopy">📋 Copy feedback</button>
         <button type="button" class="ghost-btn" id="fbPdf">📄 Save as PDF</button>
         <button type="button" class="ghost-btn" id="fbRetry" hidden>Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="clearModal" role="alertdialog" aria-modal="true" aria-labelledby="clearTitle" aria-describedby="clearText" hidden>
+    <div class="modal-card small">
+      <div class="modal-head"><div class="modal-title" id="clearTitle">Start fresh?</div></div>
+      <p class="modal-text" id="clearText">This clears the live stream, all corrections, the mistake tracker, the student name and lesson phrases, and the last lesson feedback. It can't be undone. Your settings and blocks stay as they are.</p>
+      <div class="notice" id="clearNotice" hidden></div>
+      <div class="modal-actions">
+        <button type="button" class="danger-btn" id="clearYes">Clear everything</button>
+        <button type="button" class="ghost-btn" id="clearNo">Cancel</button>
       </div>
     </div>
   </div>
@@ -779,6 +802,8 @@ function mmss(seconds) {
 
 function renderClassNote() {
   document.body.classList.toggle("live", running);
+  const cb = document.getElementById("clearBtn");
+  if (cb) cb.disabled = running;
   syncTierCards();
   if (!running || !sessionTier) { classNote.textContent = ""; classNote.classList.remove("warn", "paused"); return; }
   const used = Math.floor(usedNow()); // whole seconds, so time used + time left always add up
@@ -1864,12 +1889,14 @@ document.getElementById("fbCopy").addEventListener("click", async function () {
   let ok = false;
   try { await navigator.clipboard.writeText(area.value); ok = true; } catch { area.select(); try { ok = document.execCommand("copy"); } catch {} }
   button.textContent = ok ? "✓ Copied" : "Copy failed";
+  if (ok && lastFeedback) lastFeedback.saved = lastFeedback.saved || "copied";
   setTimeout(function () { button.textContent = "📋 Copy feedback"; }, 1500);
 });
 
 // "Save as PDF": a clean printable summary; the browser's print window saves it as a PDF.
 document.getElementById("fbPdf").addEventListener("click", function () {
   if (!lastFeedback || !lastFeedback.text) return;
+  lastFeedback.saved = "saved as PDF";
   const s = lastFeedback.snapshot, t = lastFeedback.text;
   const area = document.getElementById("fbText");
   const feedbackText = area ? area.value : summarySection(t, "FEEDBACK:");
@@ -1904,6 +1931,67 @@ ${rows ? `<h2>Corrections</h2><table><tr><td><i>You said</i></td><td><i>Better</
     setTimeout(function () { frame.remove(); }, 60000);
   }, 300);
 });
+
+// ---------------------------------------------------------------------------
+// "Start fresh": wipe the screen for the next student, after a warning. If there's
+// Premium lesson feedback that hasn't been copied or saved yet, say so first.
+// ---------------------------------------------------------------------------
+const clearBtn = document.getElementById("clearBtn");
+const clearModal = document.getElementById("clearModal");
+const clearNotice = document.getElementById("clearNotice");
+
+function screenHasContent() {
+  return !!(results.querySelector(".correction-card") || finalTranscript.trim() || liveTranscript.querySelector(".final-line") ||
+    lastFeedback || classLog.length || (studentNameEl && studentNameEl.value.trim()) || (targetPhrasesEl && targetPhrasesEl.value.trim()));
+}
+
+function openClearConfirm() {
+  if (running) { setStatus("Stop the class before starting fresh."); return; }
+  if (!screenHasContent()) { wipeScreen(); return; }
+  clearNotice.hidden = true;
+  clearNotice.className = "notice";
+  if (lastFeedback) {
+    const who = lastFeedback.snapshot.student_name ? " for " + lastFeedback.snapshot.student_name : "";
+    clearNotice.hidden = false;
+    if (lastFeedback.saved) {
+      clearNotice.classList.add("ok");
+      clearNotice.textContent = "✓ The lesson feedback" + who + " was " + lastFeedback.saved + ".";
+    } else {
+      clearNotice.classList.add("warn");
+      const state = lastFeedback.text ? "hasn't been copied or saved as PDF yet" : "isn't ready (it's still being written or couldn't be written)";
+      clearNotice.innerHTML = "⚠️ The lesson feedback" + escapeHtml(who) + " " + state + ". Clearing will delete it. " +
+        '<button type="button" class="link-btn" id="clearOpenFb">Open the feedback</button>';
+      document.getElementById("clearOpenFb").addEventListener("click", function () { closeClearConfirm(); openFeedback(); });
+    }
+  }
+  clearModal.hidden = false;
+  document.getElementById("clearNo").focus(); // the safe choice is the default
+}
+function closeClearConfirm() { clearModal.hidden = true; }
+
+function wipeScreen() {
+  finalTranscript = "";
+  lastInterim = "";
+  clearHold();
+  clearEndpointTimer();
+  liveTranscript.innerHTML = '<div class="empty">Start listening and speak normally.</div>';
+  results.innerHTML = '<div class="empty">Corrections will appear here.</div>';
+  results.scrollTop = 0;
+  if (studentNameEl) studentNameEl.value = "";
+  if (targetPhrasesEl) targetPhrasesEl.value = "";
+  resetClassLog();
+  if (premiumBar) premiumBar.hidden = true;
+  lastFeedback = null;
+  feedbackBtn.hidden = true;
+  closeFeedback();
+  setStatus("Ready for the next student.");
+}
+
+clearBtn.addEventListener("click", openClearConfirm);
+document.getElementById("clearNo").addEventListener("click", closeClearConfirm);
+document.getElementById("clearYes").addEventListener("click", function () { closeClearConfirm(); wipeScreen(); });
+clearModal.addEventListener("click", function (e) { if (e.target === clearModal) closeClearConfirm(); });
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !clearModal.hidden) closeClearConfirm(); });
 
 // ---- Resizable split between Live Stream and Corrections (remembered on this computer) ----
 const coachGrid = document.querySelector(".coach-grid");
