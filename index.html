@@ -1404,8 +1404,11 @@ async function connectSocket(options) {
         return;
       }
       console.error("Soniox error:", data);
-      ws._errored = true; // keep this message on screen when the connection then closes
-      if (ws === socket) setStatus(`Voice engine error: ${data.error_message || data.error_code}.`);
+      // Paused (or wrapping up a stream we're replacing): nothing is listening or being
+      // billed, so a message from the old connection — usually an idle timeout — doesn't matter.
+      if (paused || ws._ending || ws !== socket) return;
+      ws._errored = true;
+      setStatus(friendlyVoiceError(data.error_code, data.error_message));
       return;
     }
     // A stream that's been handed over still delivers its last words; any other replaced
@@ -1497,7 +1500,7 @@ async function connectSocket(options) {
 
   ws.onerror = function (event) {
     console.error("Soniox WebSocket error:", event);
-    if (ws === socket && !ws._ending && !paused) setStatus("Voice engine error.");
+    if (ws === socket && !ws._ending && !paused) setStatus("Connection hiccup with the voice engine. Reconnecting…");
   };
 
   ws.onclose = function (event) {
@@ -1518,7 +1521,7 @@ async function connectSocket(options) {
     }
     if (reconnectAttempts < MAX_RECONNECTS) {
       reconnectAttempts++;
-      setStatus("Connection dropped — reconnecting...");
+      if (!ws._errored) setStatus("Connection dropped — reconnecting...");
       setTimeout(async function () {
         if (!running || paused || socket) return; // stopped, paused or already reconnected
         try {
@@ -1528,9 +1531,20 @@ async function connectSocket(options) {
         }
       }, 1000 * reconnectAttempts);
     } else {
-      setStatus(`Voice engine disconnected (${event.code}). Press Pause, then Resume to reconnect.`);
+      setStatus("Lost the connection to the voice engine. Check your internet, then press Pause and Resume to reconnect. Your class and blocks are safe.");
     }
   };
+}
+
+// Plain-language versions of the voice engine's error messages. TeachPaL reconnects by
+// itself after most of these, so the message says what's happening rather than "error".
+function friendlyVoiceError(code, message) {
+  const c = Number(code), m = String(message || "").toLowerCase();
+  if (/timeout|timed out|no audio|idle/.test(m) || c === 408) return "No sound reached TeachPaL for a while, so it reconnected. If the student is talking and nothing appears, check the microphone or shared tab.";
+  if (c === 429 || /busy|rate|too many/.test(m)) return "The voice engine is busy for a moment. Reconnecting…";
+  if (c === 401 || c === 403 || /key|auth|unauthori/.test(m)) return "Couldn't connect to the voice engine. Press Pause, then Resume to try again.";
+  if (c >= 500) return "The voice engine had a hiccup on its side. Reconnecting…";
+  return "The voice engine stopped unexpectedly. Reconnecting…";
 }
 
 // Sends the unfinished leftover text for analysis. In translation mode short beginner
