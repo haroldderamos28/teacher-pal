@@ -34,6 +34,26 @@
     .alt { font-size: 14px; color: #1a4fa0; margin-top: 10px; line-height: 1.4; }
     .vocab { font-size: 14px; color: #0a6b3a; margin-top: 10px; line-height: 1.4; }
     .thinking { color: #9ca3af; font-style: italic; }
+    .box { position: relative; border: 1px solid; border-radius: 10px; padding: 10px 12px 11px; margin-top: 8px; }
+    .box:first-child { margin-top: 0; }
+    .box-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.03em; color: #374151; margin-bottom: 4px; padding-right: 80px; min-height: 24px; }
+    .box-icon { font-size: 15px; text-transform: none; }
+    .box-text { line-height: 1.45; }
+    .box-corrected { background: #ecfdf5; border-color: #a7f3d0; }
+    .box-corrected .box-text, .box-translation .box-text { font-size: 19px; font-weight: bold; }
+    .box-translation { background: #f5f3ff; border-color: #ddd6fe; }
+    .box-natural { background: #eff6ff; border-color: #bfdbfe; }
+    .box-natural .box-text { font-size: 17px; }
+    .box-why { background: #fffbeb; border-color: #fde68a; }
+    .box-why .box-text { font-size: 14px; color: #4b5563; }
+    .box-alt { background: #eef2ff; border-color: #c7d2fe; }
+    .box-alt .box-text { font-size: 14px; color: #1e3a8a; }
+    .box-vocab { background: #f0fdfa; border-color: #99f6e4; }
+    .box-vocab .box-text { font-size: 14px; color: #065f46; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 9px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .copy-btn:hover { background: #f3f4f6; }
+    .copy-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+    .copy-btn.copied { background: #059669; border-color: #059669; color: #fff; }
     .error { color: #dc2626; background: #fef2f2; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; white-space: pre-wrap; }
     .empty { color: #9ca3af; font-size: 15px; }
     .said { font-size: 14px; color: #6b7280; font-style: italic; margin-bottom: 8px; }
@@ -753,37 +773,62 @@ function renderCorrection(card, generated) {
   const vocab = extractLine(generated, "VOCAB:");
 
   if (!corrected && !natural && !why && !alternatives && !vocab) {
-    card.innerHTML = `
-      <div class="correction-label">${translating ? "Translation" : "Correction"}</div>
-      <div class="natural">${escapeHtml(generated.trim())}</div>
-    `;
+    card.innerHTML = correctionBox(translating ? "translation" : "natural", translating ? "Translation" : "Correction", generated.trim());
     return;
   }
 
-  card.innerHTML = `
-    ${corrected ? `
-      <div class="correction-label">${translating ? "Translation" : "Corrected"}</div>
-      <div class="corrected">${escapeHtml(corrected)}</div>
-    ` : ""}
+  // Alternatives display on one line with • but copy as one per line, ready to paste.
+  const altList = alternatives ? alternatives.split("|").map(function (a) { return a.trim(); }).filter(Boolean) : [];
 
-    ${natural ? `
-      <div class="correction-label" style="margin-top:12px;">${translating ? "Suggested English phrase" : "More natural"}</div>
-      <div class="natural">${escapeHtml(natural)}</div>
-    ` : ""}
-
-    ${why ? `<div class="why">${escapeHtml(why)}</div>` : ""}
-
-    ${alternatives ? `
-      <div class="correction-label" style="margin-top:12px;">Other ways to say it</div>
-      <div class="alt">${escapeHtml(alternatives.replace(/\|/g, "•"))}</div>
-    ` : ""}
-
-    ${vocab ? `
-      <div class="correction-label" style="margin-top:12px;">Vocabulary</div>
-      <div class="vocab">${escapeHtml(vocab)}</div>
-    ` : ""}
-  `;
+  card.innerHTML =
+    (corrected ? correctionBox(translating ? "translation" : "corrected", translating ? "Translation" : "Corrected", corrected) : "") +
+    (natural ? correctionBox("natural", translating ? "Suggested English phrase" : "More natural", natural) : "") +
+    (why ? correctionBox("why", "Why", why) : "") +
+    (altList.length ? correctionBox("alt", "Other ways to say it", altList.join(" • "), altList.join("\n")) : "") +
+    (vocab ? correctionBox("vocab", "Vocabulary", vocab) : "");
 }
+
+// One colored box per part of a correction, each with its own Copy button.
+const BOX_ICONS = { corrected: "✅", translation: "🌐", natural: "💬", why: "💡", alt: "🔁", vocab: "📚" };
+
+function correctionBox(kind, label, text, copyText) {
+  return `
+    <div class="box box-${kind}">
+      <div class="box-head"><span class="box-icon" aria-hidden="true">${BOX_ICONS[kind]}</span>${escapeHtml(label)}</div>
+      <button type="button" class="copy-btn" data-copy="${escapeHtml(copyText || text)}" aria-label="Copy ${escapeHtml(label.toLowerCase())}" title="Copy to paste into your lesson platform">📋 Copy</button>
+      <div class="box-text">${escapeHtml(text)}</div>
+    </div>`;
+}
+
+// One click listener for every Copy button (cards are redrawn as the AI streams in).
+results.addEventListener("click", async function (event) {
+  const button = event.target.closest(".copy-btn");
+  if (!button) return;
+  const text = button.dataset.copy || "";
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch {
+    // Older browsers or blocked clipboard: fall back to a hidden text box.
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    try { ok = document.execCommand("copy"); } catch {}
+    area.remove();
+  }
+  button.textContent = ok ? "✓ Copied" : "Copy failed";
+  button.classList.toggle("copied", ok);
+  setTimeout(function () {
+    if (!button.isConnected) return;
+    button.textContent = "📋 Copy";
+    button.classList.remove("copied");
+  }, 1500);
+});
 
 function extractLine(text, label) {
   const index = text.indexOf(label);
