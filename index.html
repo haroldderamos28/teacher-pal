@@ -73,8 +73,10 @@
     .chip-tier2 { background: #ecfdf5; color: #065f46; }
     .chip-premium { background: #fff7ed; color: #9a3412; }
     .chip.empty-chip { opacity: 0.55; }
-    .class-note { color: #0f766e; font-weight: bold; }
-    .class-note.warn { color: #b45309; }
+    .class-note { color: #0f766e; font-weight: bold; font-size: 14px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 9px 12px; font-variant-numeric: tabular-nums; }
+    .class-note:empty { display: none; }
+    .class-note.warn { color: #b45309; background: #fffbeb; border-color: #fcd34d; }
+    .class-note.paused { color: #6b7280; background: #f3f4f6; border-color: #e5e7eb; }
     .account-right { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #6b7280; }
     .link-btn { background: none; color: #0f766e; padding: 4px 2px; font-weight: bold; font-size: 13px; }
     .link-btn:hover { text-decoration: underline; }
@@ -131,7 +133,6 @@
     <div class="controls">
       <div class="account-bar" id="accountBar" hidden>
         <span id="balanceChips"></span>
-        <span class="class-note" id="classNote"></span>
         <span class="account-right"><span id="accountEmail"></span><button type="button" class="link-btn" id="signOutBtn">Sign out</button></span>
       </div>
       <div class="control-row">
@@ -232,6 +233,7 @@
         <button id="startBtn" title="Start listening to the student. Your browser will ask for microphone or tab-sharing permission.">Start Listening</button>
         <button id="pauseBtn" disabled title="Pause listening and billing between students or while waiting. Press Resume to continue — no new permission needed.">Pause</button>
         <button id="stopBtn" disabled title="End the session and release the microphone or tab sharing.">Stop</button>
+        <span class="class-note" id="classNote" aria-live="off"></span>
       </div>
       <div class="status" id="status">Ready.</div>
     </div>
@@ -509,11 +511,11 @@ function renderAccount(firstLoad) {
   document.getElementById("accountEmail").textContent = account.email || "";
   document.getElementById("balanceChips").innerHTML = TIERS.map(function (t) {
     const n = b[t] || 0;
-    return `<span class="chip chip-${t}${n ? "" : " empty-chip"}" title="${TIER_NAMES[t]} blocks left">${TIER_NAMES[t]} <b>${n}</b></span>`;
+    return `<span class="chip chip-${t}${n ? "" : " empty-chip"}" title="1 block = up to 30 minutes of class time">${TIER_NAMES[t]}: <b>${n}</b> ${n === 1 ? "block" : "blocks"}${n ? " · " + blockTime(n) : ""}</span>`;
   }).join(" ");
   for (const option of blockTypeEl.options) {
     const n = b[option.value] || 0;
-    option.textContent = TIER_NAMES[option.value] + " (" + (n ? n + " left" : "none left") + ")";
+    option.textContent = TIER_NAMES[option.value] + " (" + (n ? n + " left · " + blockTime(n) : "none left") + ")";
   }
   // On first load, start on a block type the trainer actually has.
   if (firstLoad && !running && !(b[blockTypeEl.value] > 0)) {
@@ -529,13 +531,59 @@ function renderAccount(firstLoad) {
   }
 }
 
+// How much class time a number of blocks covers (1 block = up to 30 minutes).
+function blockTime(n) {
+  if (n === 1) return "30 min";
+  const hours = n / 2;
+  return (Number.isInteger(hours) ? hours : hours.toFixed(1)) + (hours === 1 ? " hr" : " hrs");
+}
+
+// ---- Block timer: counts listening time (paused time doesn't count), synced with the
+// server every time a new piece of time is handed out.
+const FREE_SECONDS = 180;
+const BLOCK_SECONDS = 1800;
+let usedBase = 0;        // listening seconds counted up to clockStart
+let clockStart = null;   // when the current listening stretch started (null = not counting)
+let timerInterval = null;
+
+function usedNow() {
+  return usedBase + (clockStart && !paused ? (Date.now() - clockStart) / 1000 : 0);
+}
+function startClock(serverUsed) {
+  usedBase = typeof serverUsed === "number" ? serverUsed : usedNow();
+  clockStart = Date.now();
+}
+function stopClock() {
+  usedBase = usedNow();
+  clockStart = null;
+}
+function mmss(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+
 function renderClassNote() {
-  if (!running || !sessionTier) { classNote.textContent = ""; return; }
+  if (!running || !sessionTier) { classNote.textContent = ""; classNote.classList.remove("warn", "paused"); return; }
+  const used = Math.floor(usedNow()); // whole seconds, so time used + time left always add up
   const left = account ? account.balances[sessionTier] || 0 : 0;
-  let text = "This class: " + (blocksUsed ? blocksUsed + " " + TIER_NAMES[sessionTier] + " block" + (blocksUsed > 1 ? "s" : "") + " used" : "free so far (first 3 minutes)");
-  if (blocksUsed && left === 0) text += " · this is your last one";
+  let text = "⏱ Class time " + mmss(used) + " · ";
+  let warn = false;
+  if (!blocksUsed) {
+    text += "Free start: " + mmss(FREE_SECONDS - used) + " left (no block used yet)";
+  } else {
+    const remaining = blocksUsed * BLOCK_SECONDS - used;
+    text += TIER_NAMES[sessionTier] + " block " + blocksUsed + ": " + mmss(remaining) + " left";
+    if (left === 0) {
+      text += remaining < 300 ? " · last block, listening stops when it runs out" : " · last block";
+      warn = remaining < 300;
+    } else {
+      text += " · next block starts automatically";
+    }
+  }
+  if (paused) text += " (paused)";
   classNote.textContent = text;
-  classNote.classList.toggle("warn", !!blocksUsed && left === 0);
+  classNote.classList.toggle("warn", warn && !paused);
+  classNote.classList.toggle("paused", paused);
 }
 
 // Basic blocks cover corrections and natural phrasing only, so extras and translation are off.
@@ -746,12 +794,17 @@ async function startListening() {
     sessionTier = tier;
     blocksUsed = 0;
     pendingAudio = [];
+    usedBase = 0;
+    clockStart = null;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(renderClassNote, 1000);
 
     await startAudioPipeline();
     running = true;
     pauseBtn.disabled = false;
     stopBtn.disabled = false;
     audioSourceEl.disabled = true;
+    clockStart = Date.now(); // the timer starts ticking now; the server's count re-syncs it
     renderClassNote();
     await connectSocket();
 
@@ -778,6 +831,7 @@ async function connectSocket(options) {
   if (!tokenData.token) throw new Error("Voice engine key was not returned.");
   if (typeof tokenData.blocks_charged === "number") blocksUsed = tokenData.blocks_charged;
   if (tokenData.charged_now) loadAccount(); // a block was just used: refresh the balances
+  if (running && !paused) startClock(tokenData.used_seconds);
   renderClassNote();
   // The teacher may have pressed Stop or Pause while we were fetching the key.
   if (!running || paused) return;
@@ -1080,9 +1134,11 @@ pauseBtn.addEventListener("click", function () {
 // open, even silent ones). The last words spoken are still finalized and analyzed.
 function pauseListening() {
   if (!running || paused) return;
+  stopClock(); // before "paused" is set, so the time up to now is counted
   paused = true;
   clearRotateTimer();
   pendingAudio = [];
+  renderClassNote();
   if (socket) socket._flushOnFinish = true; // its last words are sent as soon as it's done
   endStream(socket);
   if (sessionId) closeSession(sessionId, false); // stop the clock on the server too
@@ -1351,6 +1407,10 @@ function cleanup(endDelayMs) {
   const ended = endSession(endDelayMs === undefined ? 1500 : endDelayMs);
   sessionTier = null;
   blocksUsed = 0;
+  clearInterval(timerInterval);
+  timerInterval = null;
+  usedBase = 0;
+  clockStart = null;
   renderClassNote();
   blockTypeEl.disabled = false;
   startBtn.disabled = false;
