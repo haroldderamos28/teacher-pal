@@ -213,7 +213,9 @@
     .seg { display: flex; gap: 6px; flex-wrap: wrap; }
     .seg button { border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer; }
     .seg button[aria-pressed="true"] { border-color: var(--ink); background: rgba(27,42,74,0.05); }
-    .bundle-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .bundle-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .try-tag { font-size: 11px; font-weight: 800; color: var(--gold); }
+    @media (max-width: 900px) { .bundle-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .bundle { text-align: left; border: 2px solid var(--line); background: #fff; border-radius: 16px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: var(--ink); }
     .bundle[aria-pressed="true"] { border-color: var(--coral); background: rgba(224,120,86,0.07); }
     .bundle-n { font-weight: 800; font-size: 15px; }
@@ -261,6 +263,7 @@
     .consent-item:has(input:checked) { border-color: #C3E0D6; background: #F4FAF8; }
     .consent-item input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--teal); flex-shrink: 0; }
     .primary-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .auth-intro { font-size: 14px; line-height: 1.5; color: var(--ink); margin: 0 0 6px; }
     .auth-legal { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.5; }
     .privacy-note { font-size: 13px; color: var(--muted); }
     .app-footer { text-align: center; font-size: 13px; color: var(--muted); padding: 8px 16px 32px; }
@@ -335,6 +338,7 @@
   <div class="auth-screen" id="authScreen" hidden>
     <div class="auth-card">
       <img id="authLogo" alt="TeachPaL">
+      <p class="auth-intro">Live coaching for online English trainers: TeachPaL listens while you teach and shows corrections, more natural phrasing and lesson feedback on your screen.</p>
       <p class="auth-sub" id="authSub">Sign in to start coaching.</p>
       <div id="authChoices">
         <button type="button" class="google-btn" id="googleBtn">Continue with Google</button>
@@ -383,7 +387,7 @@
 
     <div class="dash-grid">
       <section class="card dash-card" id="buyCard" aria-labelledby="buyTitle">
-        <div class="card-head"><div class="card-title" id="buyTitle">Buy blocks</div><span class="card-note">Bigger bundles cost less per block · blocks never expire</span></div>
+        <div class="card-head"><div class="card-title" id="buyTitle">Buy blocks</div><span class="card-note">Try 3 classes first, or save with a bigger bundle · blocks never expire</span></div>
         <div class="seg" id="buyTier" role="group" aria-label="Block type"></div>
         <div class="bundle-grid" id="buyBundles" role="group" aria-label="Bundle size"></div>
         <div class="pay-box">
@@ -927,9 +931,9 @@ function renderAccount(firstLoad) {
 
 // What each block type includes (shown when hovering the "i" on each balance).
 const TIER_INFO = {
-  basic: "Basic · ₱12 per block\n• Corrected sentence\n• More natural way to say it\n• Why it's wrong (in English)\nUses the free AI.\nBundles: 10 for ₱115 · 30 for ₱330 · 100 for ₱1,050\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
-  tier2: "Tier 2 · ₱15 per block\nEverything in Basic, plus:\n• Other ways to say it\n• Useful vocabulary\n• Collocations (natural word pairings)\n• Translation for beginners who use their own language\n• More accurate, faster AI\nBundles: 10 for ₱145 · 30 for ₱420 · 100 for ₱1,300\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
-  premium: "Premium · ₱17 per block\nEverything in Tier 2, plus:\n• Lesson feedback written for you after class\n• PDF lesson summary to save or send\n• Mistake tracker during class\n• Lesson target-phrase tracker\n• Follow-up questions to ask next\n• Highlights of what the student said well\nBundles: 10 for ₱165 · 30 for ₱480 · 100 for ₱1,500\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
+  basic: "Basic · ₱12 per block\n• Corrected sentence\n• More natural way to say it\n• Why it's wrong (in English)\nUses the free AI.\nTry it: 3 for ₱36 · Bundles: 10 for ₱115 · 30 for ₱330 · 100 for ₱1,050\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
+  tier2: "Tier 2 · ₱15 per block\nEverything in Basic, plus:\n• Other ways to say it\n• Useful vocabulary\n• Collocations (natural word pairings)\n• Translation for beginners who use their own language\n• More accurate, faster AI\nTry it: 3 for ₱45 · Bundles: 10 for ₱145 · 30 for ₱420 · 100 for ₱1,300\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
+  premium: "Premium · ₱17 per block\nEverything in Tier 2, plus:\n• Lesson feedback written for you after class\n• PDF lesson summary to save or send\n• Mistake tracker during class\n• Lesson target-phrase tracker\n• Follow-up questions to ask next\n• Highlights of what the student said well\nTry it: 3 for ₱51 · Bundles: 10 for ₱165 · 30 for ₱480 · 100 for ₱1,500\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
 };
 
 // The three block-type cards on the setup card (they drive the hidden Block type dropdown).
@@ -2278,7 +2282,8 @@ const PAY_INFO = {
   maya: { name: "Maya", qr: "qr-maya.png" },
   bdo: { name: "BDO", qr: "qr-bdo.png" },
 };
-const DEFAULT_BUNDLES = { basic: { 10: 115, 30: 330, 100: 1050 }, tier2: { 10: 145, 30: 420, 100: 1300 }, premium: { 10: 165, 30: 480, 100: 1500 } };
+const DEFAULT_BUNDLES = { basic: { 3: 36, 10: 115, 30: 330, 100: 1050 }, tier2: { 3: 45, 10: 145, 30: 420, 100: 1300 }, premium: { 3: 51, 10: 165, 30: 480, 100: 1500 } };
+const TRY_SIZE = 3; // "Try it" pack: 3 classes at the regular price
 const SINGLE_PRICE = { basic: 12, tier2: 15, premium: 17 };
 let dash = null;              // last /dashboard response
 let defaultsApplied = false;
@@ -2350,8 +2355,16 @@ function renderBuy() {
   document.getElementById("buyTier").innerHTML = TIERS.map(function (t) {
     return `<button type="button" data-tier="${t}" aria-pressed="${buy.tier === t}">${TIER_NAMES[t]}</button>`;
   }).join("");
-  document.getElementById("buyBundles").innerHTML = [10, 30, 100].map(function (n) {
+  const sizes = [TRY_SIZE, 10, 30, 100].filter(function (n) { return bun[buy.tier][n]; });
+  if (!bun[buy.tier][buy.size]) buy.size = sizes[sizes.length > 1 ? 1 : 0];
+  document.getElementById("buyBundles").innerHTML = sizes.map(function (n) {
     const price = bun[buy.tier][n];
+    if (n === TRY_SIZE) {
+      return `<button type="button" class="bundle bundle-try" data-size="${n}" aria-pressed="${buy.size === n}">
+      <span class="bundle-n">Try it · ${n} blocks</span><span class="bundle-price">${peso(price)}</span>
+      <span class="bundle-per">${n} classes · ${blockTime(n)}</span>
+      <span class="try-tag">No big commitment</span></button>`;
+    }
     const per = price / n;
     const save = Math.round((1 - per / SINGLE_PRICE[buy.tier]) * 100);
     return `<button type="button" class="bundle" data-size="${n}" aria-pressed="${buy.size === n}">
