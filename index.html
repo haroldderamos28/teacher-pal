@@ -325,6 +325,10 @@
 
     /* Sign-in screen */
     .auth-screen { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+    .iab-banner { display: flex; flex-direction: column; gap: 8px; text-align: left; background: #FFF4E5; border: 1.5px solid rgba(176,122,30,0.35); border-radius: 16px; padding: 14px 16px; margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: var(--ink); }
+    .iab-banner b { font-size: 15px; }
+    .iab-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .iab-actions .primary-btn, .iab-actions .ghost-btn { text-decoration: none; padding: 9px 16px; font-size: 14px; }
     .auth-card { width: 100%; max-width: 400px; background: #fff; border-radius: 24px; padding: 32px 28px; box-shadow: 0 10px 40px rgba(27,42,74,0.10); text-align: center; }
     .auth-card img { max-width: 230px; height: auto; margin-bottom: 4px; }
     .auth-sub { color: var(--muted); margin: 0 0 20px; font-size: 15px; }
@@ -394,6 +398,14 @@
       <img id="authLogo" alt="TeachPaL">
       <p class="auth-intro">Your live English speaking coach. TeachPaL listens as you (or your student) speak and shows corrections, more natural phrasing and feedback on your screen. For trainers and learners.</p>
       <p class="auth-sub" id="authSub">Sign in to start coaching.</p>
+      <div class="iab-banner" id="iabBanner" role="alert" hidden>
+        <b>Open TeachPaL in Chrome</b>
+        <span id="iabText">You're in Facebook's built-in browser, where Google sign-in is blocked. Open this page in Chrome. On a computer works best, since lessons use tab audio.</span>
+        <div class="iab-actions">
+          <a class="primary-btn iab-open" id="iabOpen" hidden>Open in Chrome</a>
+          <button type="button" class="ghost-btn" id="iabCopy">Copy link</button>
+        </div>
+      </div>
       <div id="authChoices">
         <button type="button" class="google-btn" id="googleBtn">Continue with Google</button>
         <div class="auth-or">or use your email</div>
@@ -1000,7 +1012,43 @@ function readEmailForm(needPassword) {
   return { email: email, password: password };
 }
 
+// ---- In-app browsers (Facebook, Messenger, Instagram, ...) ----
+// Google refuses to sign people in inside these built-in browsers ("disallowed_useragent"),
+// so we say so up front and help them open the page in a real browser.
+const IAB_NAMES = [["Messenger", /Messenger|FB_IAB\/MESSENGER|FBAN\/Messenger/i], ["Facebook", /FBAN|FBAV|FB_IAB|FBIOS|FB4A/i], ["Instagram", /Instagram/i],
+  ["LINE", /\bLine\//i], ["TikTok", /TikTok|musical_ly|BytedanceWebview/i], ["WeChat", /MicroMessenger/i], ["Viber", /Viber/i], ["Telegram", /Telegram/i]];
+function inAppBrowser(ua) {
+  ua = ua || navigator.userAgent || "";
+  for (const [name, re] of IAB_NAMES) if (re.test(ua)) return name;
+  return "";
+}
+const iabName = inAppBrowser();
+if (iabName) {
+  const ua = navigator.userAgent || "";
+  const android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+  document.getElementById("iabBanner").hidden = false;
+  document.getElementById("iabText").textContent = "You're in " + iabName + "'s built-in browser, where Google sign-in is blocked. " +
+    (android ? "Tap Open in Chrome below, or tap ⋮ and choose Open in Chrome." : ios ? "Tap ⋯ (or the share icon) and choose Open in Safari or Open in browser." : "Open this page in Chrome.") +
+    " A computer works best, since lessons use tab audio.";
+  if (android) {
+    const open = document.getElementById("iabOpen");
+    open.href = "intent://" + location.host + location.pathname + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" + encodeURIComponent(APP_URL) + ";end";
+    open.hidden = false;
+  }
+}
+document.getElementById("iabCopy").addEventListener("click", async function () {
+  const btn = this;
+  try { await navigator.clipboard.writeText(APP_URL); btn.textContent = "✓ Link copied"; }
+  catch { btn.textContent = APP_URL; } // shows the link so it can be long-pressed and copied
+  setTimeout(function () { btn.textContent = "Copy link"; }, 2500);
+});
+
 document.getElementById("googleBtn").addEventListener("click", async function () {
+  if (iabName) {
+    authMsg("Google sign-in doesn't work inside " + iabName + ". Open this page in Chrome first (see above), or use your email below.", true);
+    document.getElementById("iabBanner").scrollIntoView && document.getElementById("iabBanner").scrollIntoView({ block: "center" });
+    return;
+  }
   authMsg("Opening Google...");
   const { error } = await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: APP_URL } });
   if (error) authMsg(friendlyAuthError(error), true);
