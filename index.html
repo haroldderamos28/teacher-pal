@@ -2553,11 +2553,27 @@ function recordForFeedback(heard, generated) {
   classLog.push({
     heard: heard,
     corrected: extractLine(generated, "CORRECTED:"),
+    natural: extractLine(generated, "NATURAL:"),
     why: extractLine(generated, "WHY:"),
     mistakes: mistakes.join(", "),
     praise: extractLine(generated, "PRAISE:"),
   });
   renderPremiumBar();
+}
+
+// The "Better" line for the PDF. Long turns come back as short "mistake → fix | ..." notes,
+// so the full natural rewrite reads better there. Returns "" for rows not worth showing.
+function normForCompare(t) {
+  return String(t || "").toLowerCase().replace(/[^a-z0-9' ]+/g, " ")
+    .replace(/\b(uh|um|ah|eh|oh|hmm|mm|hm|yeah|yes|okay|ok)\b/g, " ").replace(/\s+/g, " ").trim();
+}
+function betterLine(x) {
+  const c = String(x.corrected || "").trim(), n = String(x.natural || "").trim();
+  if (/no major mistakes/i.test(c)) return "";
+  const better = c.includes("→") ? n : c;
+  if (!better || /(—|\.\.\.|…)\s*$/.test(better)) return "";          // unfinished thought
+  if (normForCompare(better) === normForCompare(x.heard)) return "";    // nothing really changed
+  return better;
 }
 
 function renderPremiumBar() {
@@ -2673,8 +2689,9 @@ document.getElementById("fbPdf").addEventListener("click", function () {
   const ul = function (items) { return items.length ? "<ul>" + items.map(function (x) { return "<li>" + e(x) + "</li>"; }).join("") + "</ul>" : "<p>—</p>"; };
   const logo = document.querySelector(".brand img") ? document.querySelector(".brand img").src : "";
   const tallies = Object.entries(s.mistakes).sort(function (a, b) { return b[1] - a[1]; });
-  const rows = s.log.filter(function (x) { return x.corrected && x.corrected.trim() !== x.heard.trim(); }).slice(0, 25)
-    .map(function (x) { return `<tr><td>${e(x.heard)}</td><td><b>${e(x.corrected)}</b></td></tr>`; }).join("");
+  const rows = s.log.map(function (x) { return { heard: x.heard, better: betterLine(x) }; })
+    .filter(function (x) { return x.better; }).slice(0, 25)
+    .map(function (x) { return `<tr><td>${e(x.heard)}</td><td><b>${e(x.better)}</b></td></tr>`; }).join("");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Lesson summary${s.student_name ? " - " + e(s.student_name) : ""}</title>
 <style>@page{size:auto;margin:0}body{font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#1B2A4A;margin:0 16mm;font-size:13px;line-height:1.5}
 table.pg{width:100%;border-collapse:collapse}table.pg>thead td,table.pg>tfoot td{height:14mm;padding:0;border:0}table.pg>tbody>tr>td{padding:0;border:0;width:auto}
