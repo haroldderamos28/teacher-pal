@@ -107,6 +107,10 @@
 
     .panel-header { display: flex; align-items: center; padding: 18px 24px; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); }
     .panel-header .info { margin-left: 6px; }
+    /* Reading older corrections: the list stays put, and this pill jumps back to the newest. */
+    html, #results { overflow-anchor: none; }
+    .new-pill { margin-left: auto; border: 0; border-radius: 999px; background: var(--coral); color: #fff; font: inherit; font-size: 12px; font-weight: 800; letter-spacing: 0; text-transform: none; padding: 6px 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(224,120,86,0.35); }
+    .new-pill:hover { filter: brightness(1.05); }
     .panel-body { padding: 20px 24px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
     #liveTranscript { font-size: 22px; line-height: 1.6; min-height: 100px; }
     .final-line { margin-bottom: 10px; }
@@ -583,7 +587,7 @@
       </div>
       <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels (drag, or use the arrow keys; double-click to reset)" title="Drag to resize · double-click to reset" tabindex="0"></div>
       <div class="panel card">
-        <div class="panel-header">Corrections<span class="info" tabindex="0" role="img" aria-label="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why." data-tip="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why.">i</span></div>
+        <div class="panel-header">Corrections<span class="info" tabindex="0" role="img" aria-label="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why." data-tip="Newest on top. Each card is one finished thought from the student: the corrected version, a more natural way to say it, and why. While your mouse is over this panel (or you've scrolled down), the list holds still so you can read; new ones wait behind the ↑ button.">i</span><button type="button" class="new-pill" id="newPill" hidden>↑ New corrections</button></div>
         <div class="premium-bar" id="premiumBar" hidden>
           <div class="pb-row" id="mistakeTally"></div>
           <div class="pb-row" id="targetTally"></div>
@@ -1711,6 +1715,84 @@ async function resumeListening() {
   }
 }
 
+// ---- Keep the trainer's place while reading older corrections ----
+// New cards go on top and the newest card keeps growing as the AI writes it. If the trainer
+// has scrolled down to re-read something, that would push their text around, so while they
+// are reading back the list is held still and a pill offers a jump back to the newest.
+// "Reading" means the mouse is over the corrections panel, or the list is scrolled down.
+// Otherwise (mouse elsewhere, list at the top) it simply follows the newest card as before.
+const newPill = document.getElementById("newPill");
+const READ_SLACK = 8;       // px from the top that still counts as "following the newest"
+let readAnchor = null;      // { el, top }: the card the trainer is looking at, and where it was
+let newWhileReading = 0;
+let adjustingScroll = false;
+let hoverHold = false;
+
+function resultsScrolls() {
+  // Desktop: the corrections panel scrolls by itself. Small screens: the whole page scrolls.
+  return getComputedStyle(results).overflowY !== "visible" && results.scrollHeight > results.clientHeight + 1;
+}
+function viewTop() { return resultsScrolls() ? results.getBoundingClientRect().top : 0; }
+function readingBack() {
+  if (hoverHold) return true;
+  if (resultsScrolls()) return results.scrollTop > READ_SLACK;
+  return results.getBoundingClientRect().top < -READ_SLACK;
+}
+function captureReadAnchor() {
+  readAnchor = null;
+  if (!readingBack()) return;
+  const top = viewTop();
+  for (const el of results.children) {
+    const r = el.getBoundingClientRect();
+    if (r.bottom > top + 1) { readAnchor = { el: el, top: r.top }; return; }
+  }
+}
+function updateNewPill() {
+  if (!newPill) return;
+  if (!readingBack()) newWhileReading = 0;
+  newPill.hidden = newWhileReading === 0;
+  newPill.textContent = "↑ " + newWhileReading + " new correction" + (newWhileReading === 1 ? "" : "s");
+}
+function onResultsScroll() {
+  if (adjustingScroll) return;
+  captureReadAnchor();
+  updateNewPill();
+}
+results.addEventListener("scroll", onResultsScroll, { passive: true });
+const resultsPanel = results.closest(".panel") || results;
+resultsPanel.addEventListener("mouseenter", function () { hoverHold = true; captureReadAnchor(); });
+resultsPanel.addEventListener("mouseleave", function () { hoverHold = false; captureReadAnchor(); updateNewPill(); });
+window.addEventListener("scroll", onResultsScroll, { passive: true });
+
+// Runs after every change to the list and before the screen is redrawn, so the text the
+// trainer is reading never visibly moves.
+const holdObserver = new MutationObserver(function (mutations) {
+  if (!readAnchor || !readAnchor.el.isConnected) { captureReadAnchor(); return; }
+  for (const m of mutations) {
+    if (m.target !== results) continue;
+    for (const node of m.addedNodes) if (node.classList && node.classList.contains("correction-card")) newWhileReading++;
+  }
+  const delta = readAnchor.el.getBoundingClientRect().top - readAnchor.top;
+  if (Math.abs(delta) > 0.5) {
+    adjustingScroll = true;
+    if (resultsScrolls()) results.scrollTop += delta; else window.scrollBy(0, delta);
+    requestAnimationFrame(function () { adjustingScroll = false; });
+  }
+  updateNewPill();
+});
+holdObserver.observe(results, { childList: true, subtree: true, characterData: true });
+// The Premium tally bar sits just above the list; when it grows it would push the list down.
+const premiumBarEl = document.getElementById("premiumBar");
+if (premiumBarEl) holdObserver.observe(premiumBarEl, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
+
+if (newPill) newPill.addEventListener("click", function () {
+  newWhileReading = 0;
+  readAnchor = null;
+  if (resultsScrolls()) results.scrollTo({ top: 0, behavior: "smooth" });
+  else window.scrollTo({ top: window.scrollY + results.getBoundingClientRect().top - 90, behavior: "smooth" });
+  updateNewPill();
+});
+
 function renderLiveTranscript(finalText, interimText) {
   liveTranscript.innerHTML = `
     <div class="final-line">${escapeHtml(finalText)}</div>
@@ -2250,6 +2332,7 @@ function wipeScreen() {
   liveTranscript.innerHTML = '<div class="empty">Start listening and speak normally.</div>';
   results.innerHTML = '<div class="empty">Corrections will appear here.</div>';
   results.scrollTop = 0;
+  readAnchor = null; newWhileReading = 0; updateNewPill();
   if (studentNameEl) studentNameEl.value = "";
   if (targetPhrasesEl) targetPhrasesEl.value = "";
   resetClassLog();
@@ -2361,9 +2444,8 @@ function renderBuy() {
     const price = bun[buy.tier][n];
     if (n === TRY_SIZE) {
       return `<button type="button" class="bundle bundle-try" data-size="${n}" aria-pressed="${buy.size === n}">
-      <span class="bundle-n">Try it · ${n} blocks</span><span class="bundle-price">${peso(price)}</span>
-      <span class="bundle-per">${n} classes · ${blockTime(n)}</span>
-      <span class="try-tag">No big commitment</span></button>`;
+      <span class="try-tag">🎁 Try it</span><span class="bundle-n">${n} blocks</span><span class="bundle-price">${peso(price)}</span>
+      <span class="bundle-per">${n} classes · ${blockTime(n)} · no big commitment</span></button>`;
     }
     const per = price / n;
     const save = Math.round((1 - per / SINGLE_PRICE[buy.tier]) * 100);
