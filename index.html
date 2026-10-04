@@ -118,6 +118,17 @@
     .empty { color: #A3A9B3; font-size: 15px; }
     .thinking { color: #A3A9B3; font-style: italic; font-size: 14px; }
     .correction-card { border: 1px solid var(--line); border-radius: 18px; padding: 14px; margin-bottom: 14px; background: #FFFDF9; }
+    /* "Write your thoughts" box under the live stream (Tier 2 / Premium) */
+    .compose { border-top: 1px solid var(--line); padding: 12px 16px 14px; background: #FFFDF9; }
+    .compose-head { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+    .compose-head .tier-tag { font-size: 10px; letter-spacing: 0.04em; background: rgba(62,124,138,0.12); color: #2F6672; border-radius: 999px; padding: 2px 8px; }
+    .compose-row { display: flex; gap: 8px; align-items: flex-end; }
+    .compose textarea { flex: 1; resize: none; min-height: 46px; max-height: 140px; padding: 10px 12px; border: 1.5px solid rgba(27,42,74,0.15); border-radius: 12px; font: inherit; font-size: 15px; color: var(--ink); background: #fff; }
+    .compose textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(62,124,138,0.18); }
+    .compose textarea:disabled { background: #F4F1EC; cursor: not-allowed; }
+    .compose button { padding: 11px 16px; border-radius: 12px; }
+    .compose-note { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; justify-content: space-between; gap: 8px; }
+    .said.typed { color: #2F6672; }
     .said { font-size: 13px; color: var(--muted); font-style: italic; margin: 0 4px 10px; line-height: 1.45; }
     .box { position: relative; border: 1px solid; border-radius: 14px; padding: 11px 14px 12px; margin-top: 8px; }
     .box:first-child { margin-top: 0; }
@@ -297,6 +308,18 @@
     .primary-btn:hover { background: #D26846; }
     .google-btn { width: 100%; background: #fff; color: var(--ink); border: 1.5px solid rgba(27,42,74,0.18); border-radius: 999px; font-size: 15px; font-weight: 700; padding: 12px 18px; cursor: pointer; }
     .google-btn:hover { background: #F7F4EF; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 46px !important; }
+    .eye-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .eye-btn:hover, .eye-btn:focus-visible { background: rgba(62,124,138,0.10); color: var(--teal); outline: none; }
+    .eye-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .eye-btn .eye-shut, .eye-btn[aria-pressed="true"] .eye-open { display: none; }
+    .eye-btn[aria-pressed="true"] .eye-shut { display: block; }
+    .pw-rules { list-style: none; margin: 2px 2px 4px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; font-size: 12.5px; color: var(--muted); }
+    .pw-rules li::before { content: "○"; display: inline-block; width: 16px; color: #A3A9B3; }
+    .pw-rules li.ok { color: #2F6672; }
+    .pw-rules li.ok::before { content: "✓"; color: var(--teal); font-weight: 800; }
+    .pw-rules li.wide { grid-column: 1 / -1; }
     .auth-or { display: flex; align-items: center; gap: 10px; color: #A3A9B3; font-size: 12px; margin: 18px 0; }
     .auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
     .auth-links { display: flex; justify-content: space-between; }
@@ -342,14 +365,18 @@
   <div class="auth-screen" id="authScreen" hidden>
     <div class="auth-card">
       <img id="authLogo" alt="TeachPaL">
-      <p class="auth-intro">Live coaching for online English trainers: TeachPaL listens while you teach and shows corrections, more natural phrasing and lesson feedback on your screen.</p>
+      <p class="auth-intro">Your live English speaking coach. TeachPaL listens as you (or your student) speak and shows corrections, more natural phrasing and feedback on your screen. For trainers and learners.</p>
       <p class="auth-sub" id="authSub">Sign in to start coaching.</p>
       <div id="authChoices">
         <button type="button" class="google-btn" id="googleBtn">Continue with Google</button>
         <div class="auth-or">or use your email</div>
         <form id="emailForm" novalidate>
           <input id="authEmail" type="email" placeholder="Email" autocomplete="email" required>
-          <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" minlength="6" required>
+          <div class="pw-wrap"><input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" required><button type="button" class="eye-btn" data-for="authPassword" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-shut" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+          <div id="signupExtra" hidden>
+            <div class="pw-wrap"><input id="authPassword2" type="password" placeholder="Confirm password" autocomplete="new-password"><button type="button" class="eye-btn" data-for="authPassword2" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-shut" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+            <ul class="pw-rules" id="pwRules" aria-live="polite"></ul>
+          </div>
           <button type="submit" class="primary-btn" id="signInBtn">Sign in</button>
           <div class="auth-links">
             <button type="button" class="link-btn" id="signUpBtn">Create an account</button>
@@ -358,11 +385,13 @@
         </form>
       </div>
       <form id="newPasswordForm" hidden>
-        <input id="newPassword" type="password" placeholder="New password (at least 8 characters)" autocomplete="new-password" minlength="8" required>
+        <div class="pw-wrap"><input id="newPassword" type="password" placeholder="New password" autocomplete="new-password" required><button type="button" class="eye-btn" data-for="newPassword" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-shut" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+        <div class="pw-wrap"><input id="newPassword2" type="password" placeholder="Confirm new password" autocomplete="new-password" required><button type="button" class="eye-btn" data-for="newPassword2" aria-label="Show password" aria-pressed="false" title="Show password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-shut" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg></button></div>
+        <ul class="pw-rules" id="newPwRules" aria-live="polite"></ul>
         <button type="submit" class="primary-btn">Save new password</button>
       </form>
       <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
-      <p class="auth-legal">By continuing you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>. TeachPaL doesn't record lessons.</p>
+      <p class="auth-legal">By continuing you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>. TeachPaL doesn't record audio.</p>
     </div>
   </div>
 
@@ -575,7 +604,7 @@
       </div>
       <div class="status" id="status">Ready.</div>
       <div class="rules-note">1 block = up to 30 minutes · classes under 3 minutes are free · paused time isn't counted</div>
-      <div class="privacy-note">🔒 TeachPaL doesn't record lessons or save transcripts. Let your student know an AI helper is listening.</div>
+      <div class="privacy-note">🔒 TeachPaL doesn't record audio or save transcripts. Teaching? Let your student know an AI helper is listening.</div>
     </section>
 
     <div class="coach-grid">
@@ -584,6 +613,14 @@
         <div class="panel-body">
           <div id="liveTranscript"><div class="empty">Start listening and speak normally.</div></div>
         </div>
+        <form class="compose" id="composeForm" autocomplete="off">
+          <div class="compose-head">✍️ Write your thoughts<span class="tier-tag">Tier 2 · Premium</span><span class="info" tabindex="0" role="img" aria-label="Type what you want to say and press Refine (or Enter). It's corrected and polished just like spoken sentences, and the card appears with the others. Uses the class you've already started: no extra blocks." data-tip="Type what you want to say and press Refine (or Enter). It's corrected and polished just like spoken sentences, and the card appears with the others. Uses the class you've already started: no extra blocks.">i</span></div>
+          <div class="compose-row">
+            <textarea id="composeText" rows="1" maxlength="800" placeholder="Type a sentence or idea to polish…" aria-label="Write your thoughts"></textarea>
+            <button type="submit" class="primary-btn" id="composeBtn">Refine</button>
+          </div>
+          <div class="compose-note"><span id="composeNote"></span><span id="composeCount"></span></div>
+        </form>
       </div>
       <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels (drag, or use the arrow keys; double-click to reset)" title="Drag to resize · double-click to reset" tabindex="0"></div>
       <div class="panel card">
@@ -602,15 +639,15 @@
 
   <div class="modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle" hidden>
     <div class="modal-card">
-      <div class="modal-head"><div class="modal-title" id="consentTitle">Before you start teaching with TeachPaL</div></div>
-      <p class="modal-text">TeachPaL listens to your lessons, so please read and tick each point. They protect you, your students and TeachPaL.</p>
-      <div class="notice ok">🔒 TeachPaL does <b>not</b> record lessons or save transcripts. Speech is turned into text live, and corrections stay on your screen only.</div>
+      <div class="modal-head"><div class="modal-title" id="consentTitle">Before you start with TeachPaL</div></div>
+      <p class="modal-text">TeachPaL listens to speech, so please read and tick each point. They protect you, anyone you teach, and TeachPaL.</p>
+      <div class="notice ok">🔒 TeachPaL does <b>not</b> record audio or save transcripts. Speech is turned into text live, and corrections stay on your screen only.</div>
       <div class="consent-list" id="consentList">
-        <label class="consent-item"><input type="checkbox"> <span>I'm allowed to use TeachPaL in my lessons under the rules of my teaching platform or school. I understand TeachPaL is an independent tool, not part of any teaching platform.</span></label>
-        <label class="consent-item"><input type="checkbox"> <span>I'll let my students know an AI helper is listening to give feedback, and get their consent where required.</span></label>
-        <label class="consent-item"><input type="checkbox"> <span>I won't use TeachPaL with students under 18 unless a parent or guardian has agreed.</span></label>
-        <label class="consent-item"><input type="checkbox"> <span>I won't say or type sensitive personal information (like health details, ID numbers or bank details) during lessons that use TeachPaL.</span></label>
-        <label class="consent-item"><input type="checkbox"> <span>I understand corrections can be wrong, and I'll check them before sharing them with students.</span></label>
+        <label class="consent-item"><input type="checkbox"> <span><b>If I use it while teaching:</b> I'm allowed to under my teaching platform's or school's rules, and I'll tell my students an AI helper is listening (with a parent's or guardian's agreement for students under 18). I understand TeachPaL is an independent tool, not part of any platform.</span></label>
+        <label class="consent-item"><input type="checkbox"> <span><b>If I use it to practise on my own:</b> I'll use only my own voice and words, and I won't use it during an exam, test or interview where outside help isn't allowed.</span></label>
+        <label class="consent-item"><input type="checkbox"> <span>I'm 18 or older, or I'm using my parent's or guardian's account with their permission.</span></label>
+        <label class="consent-item"><input type="checkbox"> <span>I won't say or type sensitive personal information (like health details, ID numbers, passwords or bank details) while TeachPaL is listening or in "Write your thoughts".</span></label>
+        <label class="consent-item"><input type="checkbox"> <span>I understand corrections can be wrong, and I'll check them before relying on them or sharing them.</span></label>
         <label class="consent-item"><input type="checkbox"> <span>I've read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
       </div>
       <div class="msg" id="consentMsg" role="status" aria-live="polite"></div>
@@ -754,6 +791,74 @@ function hideAuth() {
   authMsg("");
 }
 
+// ---- Passwords: show/hide, confirm, and strict rules ----
+// The same rules should also be set in Supabase → Authentication → Sign In / Providers → Email
+// (minimum length 10; lowercase, uppercase, digits and symbols), so they can't be skipped.
+const PW_RULES = [
+  { id: "len", text: "10+ characters", need: "at least 10 characters", test: (p) => p.length >= 10 },
+  { id: "upper", text: "Uppercase (A-Z)", need: "an uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { id: "lower", text: "Lowercase (a-z)", need: "a lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { id: "num", text: "Number (0-9)", need: "a number", test: (p) => /[0-9]/.test(p) },
+  { id: "sym", text: "Symbol (! @ # ?)", need: "a symbol like ! @ # ?", test: (p) => /[^A-Za-z0-9\s]/.test(p) },
+  { id: "space", text: "No spaces", need: "no spaces", test: (p) => p.length > 0 && !/\s/.test(p) },
+];
+function passwordProblems(pw) { return PW_RULES.filter((r) => !r.test(pw)).map((r) => r.need); }
+function renderPwRules(listEl, pw, confirm) {
+  if (!listEl) return;
+  listEl.innerHTML = PW_RULES.map((r) => `<li class="${r.test(pw) ? "ok" : ""}">${r.text}</li>`).join("") +
+    `<li class="wide ${confirm && confirm === pw ? "ok" : ""}">Both passwords match</li>`;
+}
+function checkNewPassword(pw, confirm) {
+  const missing = passwordProblems(pw);
+  if (missing.length) return "Your password needs " + missing.join(", ") + ".";
+  if (pw !== confirm) return "The two passwords don't match. Please type them again.";
+  return "";
+}
+document.querySelectorAll(".eye-btn").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    const input = document.getElementById(btn.dataset.for);
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.setAttribute("aria-pressed", String(show));
+    btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    btn.title = show ? "Hide password" : "Show password";
+    input.focus();
+  });
+});
+function hidePasswords(root) {
+  root.querySelectorAll(".eye-btn").forEach(function (btn) {
+    document.getElementById(btn.dataset.for).type = "password";
+    btn.setAttribute("aria-pressed", "false"); btn.setAttribute("aria-label", "Show password"); btn.title = "Show password";
+  });
+}
+
+let authMode = "signin";
+const authPassword2El = document.getElementById("authPassword2");
+const pwRulesEl = document.getElementById("pwRules");
+function setAuthMode(mode) {
+  authMode = mode;
+  const signup = mode === "signup";
+  document.getElementById("signupExtra").hidden = !signup;
+  document.getElementById("signInBtn").textContent = signup ? "Create account" : "Sign in";
+  document.getElementById("signUpBtn").textContent = signup ? "I already have an account" : "Create an account";
+  document.getElementById("forgotBtn").hidden = signup;
+  document.getElementById("authSub").textContent = signup ? "Create your TeachPaL account." : "Sign in to start coaching.";
+  authPasswordEl.placeholder = signup ? "Create a password" : "Password";
+  authPasswordEl.autocomplete = signup ? "new-password" : "current-password";
+  if (!signup) authPassword2El.value = "";
+  hidePasswords(emailForm);
+  renderPwRules(pwRulesEl, authPasswordEl.value, authPassword2El.value);
+  authMsg("");
+}
+function refreshSignupRules() { if (authMode === "signup") renderPwRules(pwRulesEl, authPasswordEl.value, authPassword2El.value); }
+authPasswordEl.addEventListener("input", refreshSignupRules);
+authPassword2El.addEventListener("input", refreshSignupRules);
+const newPw1 = document.getElementById("newPassword"), newPw2 = document.getElementById("newPassword2"), newPwRules = document.getElementById("newPwRules");
+function refreshNewRules() { renderPwRules(newPwRules, newPw1.value, newPw2.value); }
+newPw1.addEventListener("input", refreshNewRules);
+newPw2.addEventListener("input", refreshNewRules);
+refreshNewRules();
+
 // Supabase's own messages, in plainer words.
 function friendlyAuthError(error) {
   const m = (error && error.message) || "Something went wrong. Please try again.";
@@ -761,7 +866,7 @@ function friendlyAuthError(error) {
   if (/email not confirmed/i.test(m)) return "Please confirm your email first: open the link we sent you, then sign in.";
   if (/already registered/i.test(m)) return "That email already has an account. Sign in instead, or use Forgot password.";
   if (/rate limit|too many/i.test(m)) return "Too many tries. Please wait a minute and try again.";
-  if (/password should be/i.test(m)) return "Please use a longer password (at least 8 characters).";
+  if (/password should|weak|pwned|leaked|characters/i.test(m)) return "Please choose a stronger password: at least 10 characters with uppercase and lowercase letters, a number and a symbol. Avoid common or reused passwords.";
   return m;
 }
 
@@ -769,7 +874,7 @@ function readEmailForm(needPassword) {
   const email = authEmailEl.value.trim();
   const password = authPasswordEl.value;
   if (!/^\S+@\S+\.\S+$/.test(email)) { authMsg("Please enter your email address.", true); authEmailEl.focus(); return null; }
-  if (needPassword && password.length < 6) { authMsg("Please enter your password.", true); authPasswordEl.focus(); return null; }
+  if (needPassword && !password) { authMsg("Please enter your password.", true); authPasswordEl.focus(); return null; }
   return { email: email, password: password };
 }
 
@@ -781,6 +886,7 @@ document.getElementById("googleBtn").addEventListener("click", async function ()
 
 emailForm.addEventListener("submit", async function (event) {
   event.preventDefault();
+  if (authMode === "signup") { createAccount(); return; }
   const form = readEmailForm(true);
   if (!form) return;
   authMsg("Signing in...");
@@ -788,15 +894,26 @@ emailForm.addEventListener("submit", async function (event) {
   if (error) authMsg(friendlyAuthError(error), true);
 });
 
-document.getElementById("signUpBtn").addEventListener("click", async function () {
+// "Create an account" switches the form to sign-up (confirm password + rules) and back.
+document.getElementById("signUpBtn").addEventListener("click", function () {
+  setAuthMode(authMode === "signup" ? "signin" : "signup");
+  (authEmailEl.value.trim() ? authPasswordEl : authEmailEl).focus();
+});
+
+async function createAccount() {
   const form = readEmailForm(true);
   if (!form) return;
-  if (form.password.length < 8) { authMsg("Choose a password of at least 8 characters.", true); authPasswordEl.focus(); return; }
+  const problem = checkNewPassword(form.password, authPassword2El.value);
+  if (problem) { authMsg(problem, true); renderPwRules(pwRulesEl, form.password, authPassword2El.value); (passwordProblems(form.password).length ? authPasswordEl : authPassword2El).focus(); return; }
   authMsg("Creating your account...");
   const { data, error } = await sb.auth.signUp({ email: form.email, password: form.password, options: { emailRedirectTo: APP_URL } });
   if (error) { authMsg(friendlyAuthError(error), true); return; }
-  if (!data.session) authMsg("Almost done! We sent a confirmation link to " + form.email + ". Open it, then sign in here.");
-});
+  if (!data.session) {
+    setAuthMode("signin");
+    authPasswordEl.value = "";
+    authMsg("Almost done! We sent a confirmation link to " + form.email + ". Open it, then sign in here.");
+  }
+}
 
 document.getElementById("forgotBtn").addEventListener("click", async function () {
   const form = readEmailForm(false);
@@ -809,8 +926,9 @@ document.getElementById("forgotBtn").addEventListener("click", async function ()
 
 newPasswordForm.addEventListener("submit", async function (event) {
   event.preventDefault();
-  const password = document.getElementById("newPassword").value;
-  if (password.length < 8) { authMsg("Choose a password of at least 8 characters.", true); return; }
+  const password = newPw1.value;
+  const problem = checkNewPassword(password, newPw2.value);
+  if (problem) { authMsg(problem, true); refreshNewRules(); return; }
   authMsg("Saving...");
   const { error } = await sb.auth.updateUser({ password: password });
   if (error) { authMsg(friendlyAuthError(error), true); return; }
@@ -1012,6 +1130,7 @@ function mmss(seconds) {
 
 function renderClassNote() {
   document.body.classList.toggle("live", running);
+  if (typeof updateCompose === "function") updateCompose();
   const cb = document.getElementById("clearBtn");
   if (cb) cb.disabled = running;
   syncTierCards();
@@ -1793,6 +1912,53 @@ if (newPill) newPill.addEventListener("click", function () {
   updateNewPill();
 });
 
+// ---- Write your thoughts (Tier 2 / Premium) ----
+// Mic users (and trainers) can type an idea instead of saying it; it's refined like speech.
+// (var, not const: renderClassNote can run before this part of the script has loaded.)
+var composeForm = document.getElementById("composeForm");
+var composeText = document.getElementById("composeText");
+var composeBtn = document.getElementById("composeBtn");
+var composeNote = document.getElementById("composeNote");
+var composeCount = document.getElementById("composeCount");
+var COMPOSE_MAX = 800;
+
+function composeTier() { return running ? sessionTier : blockTypeEl.value; }
+function updateCompose() {
+  if (!composeForm) return;
+  const tier = composeTier();
+  const allowed = tier === "tier2" || tier === "premium";
+  const ready = allowed && running;
+  composeText.disabled = !ready;
+  composeBtn.disabled = !ready || !composeText.value.trim();
+  composeNote.textContent = !allowed ? "Available with Tier 2 or Premium blocks."
+    : !running ? "Press Start Listening first. Typing uses the same class, no extra blocks."
+    : "Enter to refine · Shift+Enter for a new line";
+  const n = composeText.value.length;
+  composeCount.textContent = n ? n + " / " + COMPOSE_MAX : "";
+}
+function autoGrowCompose() {
+  composeText.style.height = "auto";
+  composeText.style.height = Math.min(composeText.scrollHeight, 140) + "px";
+}
+if (composeForm) {
+  composeText.addEventListener("input", function () { autoGrowCompose(); updateCompose(); });
+  composeText.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); composeForm.requestSubmit ? composeForm.requestSubmit() : composeForm.dispatchEvent(new Event("submit", { cancelable: true })); }
+  });
+  composeForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const text = composeText.value.trim().slice(0, COMPOSE_MAX);
+    const tier = composeTier();
+    if (!text || !running || (tier !== "tier2" && tier !== "premium")) { updateCompose(); return; }
+    analyzeSentence(text, { typed: true });
+    composeText.value = "";
+    autoGrowCompose();
+    updateCompose();
+    composeText.focus();
+  });
+  blockTypeEl.addEventListener("change", updateCompose);
+}
+
 function renderLiveTranscript(finalText, interimText) {
   liveTranscript.innerHTML = `
     <div class="final-line">${escapeHtml(finalText)}</div>
@@ -1802,7 +1968,8 @@ function renderLiveTranscript(finalText, interimText) {
 
 const ENGINE_NAMES = { basic: "Basic (free AI)", haiku: "Haiku" };
 
-function analyzeSentence(text) {
+function analyzeSentence(text, opts) {
+  const typed = !!(opts && opts.typed);
   // Capture the settings at call time so a dropdown change while this request is still
   // in flight doesn't change how its own result gets rendered.
   const translating = isTranslating();
@@ -1828,6 +1995,7 @@ function analyzeSentence(text) {
     translate: translating,
     session_id: sessionId,
   };
+  if (typed) settings.typed = true;
   const premium = sessionTier === "premium";
   if (premium) {
     settings.targets = targetList();
@@ -1835,7 +2003,9 @@ function analyzeSentence(text) {
   }
 
   // What the voice engine heard, on top of every card, so you can spot a misheard word.
-  card.innerHTML = `<div class="said" title="What the voice engine heard the student say">🎧 Heard: ${escapeHtml(text)}</div>`;
+  card.innerHTML = typed
+    ? `<div class="said typed" title="What was typed in Write your thoughts">✍️ You wrote: ${escapeHtml(text)}</div>`
+    : `<div class="said" title="What the voice engine heard the student say">🎧 Heard: ${escapeHtml(text)}</div>`;
 
   if (engines.length === 1) {
     const body = document.createElement("div");
