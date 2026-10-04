@@ -257,6 +257,20 @@
     .tbl-wrap { overflow-x: auto; }
     .pill { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 700; background: rgba(27,42,74,0.07); color: var(--muted); }
     .pill.basic { background: rgba(91,100,114,0.12); color: #4A5260; } .pill.tier2 { background: rgba(62,124,138,0.13); color: #2F6672; } .pill.premium { background: rgba(201,146,46,0.16); color: #8A5E12; }
+    .adm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 10px; }
+    .help-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.55; }
+    .help-steps li::marker { font-weight: 800; color: var(--teal); }
+    .help-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; }
+    .help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .help-grid > div { background: rgba(27,42,74,0.04); border-radius: 14px; padding: 12px 14px; }
+    .help-grid p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+    .help-card a { color: var(--teal); font-weight: 700; }
+    .adm-stat { background: rgba(27,42,74,0.04); border-radius: 12px; padding: 10px 12px; }
+    .adm-stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+    .adm-stat span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    @media (max-width: 600px) { .adm-stats { grid-template-columns: repeat(2, 1fr); } }
+    .pill.st-active { background: rgba(62,124,138,0.15); color: #2F6672; } .pill.st-never { background: rgba(224,120,86,0.18); color: #A8472A; }
+    .pill.st-quiet { background: rgba(201,146,46,0.18); color: #8A5E12; } .pill.st-low { background: rgba(180,69,47,0.12); color: #9A3324; } .pill.st-none { background: rgba(91,100,114,0.12); color: #4A5260; }
     .pill.pending { background: rgba(201,146,46,0.18); color: #8A5E12; } .pill.approved { background: rgba(62,124,138,0.15); color: #2F6672; } .pill.rejected { background: rgba(180,69,47,0.12); color: #9A3324; }
     .muted { color: var(--muted); }
     .defaults-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; }
@@ -400,6 +414,7 @@
     <nav class="tabs" id="tabs" role="tablist" aria-label="TeachPaL sections" hidden>
       <button type="button" class="tab" role="tab" id="tabDash" aria-controls="dashView" aria-selected="true">📊 Dashboard</button>
       <button type="button" class="tab" role="tab" id="tabLive" aria-controls="liveView" aria-selected="false"><span class="live-dot" aria-hidden="true"></span>🎧 Live class</button>
+      <button type="button" class="tab" role="tab" id="tabHelp" aria-controls="helpView" aria-selected="false">❓ Help</button>
     </nav>
     <div class="account-bar" id="accountBar" hidden>
       <span id="balanceChips"></span>
@@ -411,7 +426,7 @@
     <section class="card dash-hero">
       <div>
         <div class="setup-title" id="dashHello">Welcome back!</div>
-        <div class="setup-sub">Your blocks, classes and purchases in one place.</div>
+        <div class="setup-sub">Your blocks, classes and purchases in one place. <button type="button" class="link-btn" id="goHelpBtn">New here? See how it works →</button></div>
       </div>
       <button type="button" class="primary-btn big-btn" id="goLiveBtn">Start a class →</button>
     </section>
@@ -485,9 +500,73 @@
         <button type="button" class="primary-btn" id="admAdd">Add</button>
       </div>
       <div class="card-title" style="margin-top:8px">Trainers</div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trainer</th><th class="num">Basic</th><th class="num">Tier 2</th><th class="num">Premium</th><th class="num">Classes</th><th>Last class</th></tr></thead><tbody id="admTrainers"></tbody></table></div>
+      <div class="adm-stats" id="admStats"></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trainer</th><th>Joined</th><th class="num">Basic</th><th class="num">Tier 2</th><th class="num">Premium</th><th class="num">Used / added</th><th class="num">Min</th><th>Last class</th></tr></thead><tbody id="admTrainers"></tbody></table></div>
       <div class="card-title" style="margin-top:8px">Recent decisions</div>
       <div class="tbl-wrap"><table class="tbl"><tbody id="admRecent"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="container" id="helpView" role="tabpanel" aria-labelledby="tabHelp" hidden>
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">Get going in 4 steps</div></div>
+      <ol class="help-steps">
+        <li><b>Get blocks.</b> On the Dashboard, open <i>Buy blocks</i>, pick a block type and size, pay by QR and send us the reference number. Your blocks show up once the payment is checked. New? Start with the 3-block Try it pack.</li>
+        <li><b>Set up your class.</b> On the <i>Live class</i> tab, choose the block type, then the Mode, Level and Support language that fit your student. You can change these mid-class too.</li>
+        <li><b>Press Start Listening.</b> Your browser asks for permission once. For an online class, choose <i>Tab / window audio</i>, pick the tab or window your class is in, and tick <b>Share audio</b>. For speaking practice on your own, use <i>Microphone</i>.</li>
+        <li><b>Teach as usual.</b> As the student speaks, each sentence gets a card: what was heard, the correction, a more natural way to say it, and more. Press <i>Pause</i> between students, <i>Stop</i> when the class ends, and <i>Start fresh</i> for the next one.</li>
+      </ol>
+    </section>
+
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">What the settings do</div></div>
+      <div class="help-grid">
+        <div><b>Mode</b><p>How the AI rewrites what the student said. Natural sounds native; Business and Professional suit workplace English; Concise is shorter; Student-friendly is the simplest wording.</p></div>
+        <div><b>Level</b><p>The student's English level. It keeps suggestions at the right difficulty and skips very short replies (under 4 words for Basic, 6 for Intermediate, 8 for Advanced).</p></div>
+        <div><b>Support language</b><p>Choose a language and beginners also see a translation of the correction. Available on Tier 2 and Premium.</p></div>
+        <div><b>Audio source</b><p>Microphone listens through your mic. Tab / window audio listens to your online class. Use Chrome or Edge on a computer for tab audio.</p></div>
+      </div>
+    </section>
+
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">Which block type?</div></div>
+      <div class="help-grid">
+        <div><b><span class="pill basic">Basic</span> ₱12</b><p>Corrections and a more natural way to say it, with the free AI.</p></div>
+        <div><b><span class="pill tier2">Tier 2</span> ₱15</b><p>Everything in Basic with the more accurate AI, plus other ways to say it, vocabulary, translation for beginners, and a <i>Write your thoughts</i> box.</p></div>
+        <div><b><span class="pill premium">Premium</span> ₱17</b><p>Everything in Tier 2, plus a mistake tracker, target phrases, follow-up questions, highlights of what the student said well, and after-class feedback you can save as a PDF.</p></div>
+      </div>
+    </section>
+
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">How blocks are used</div></div>
+      <ul class="help-list">
+        <li>1 block covers up to 30 minutes, so a 25-minute class uses 1 block.</li>
+        <li>The first 3 minutes of a class are free. A class under 3 minutes costs nothing.</li>
+        <li>Time while you're paused isn't counted, so pause between students.</li>
+        <li>Your blocks are on the Dashboard, with your class and purchase history.</li>
+      </ul>
+    </section>
+
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">Tips and extras</div></div>
+      <ul class="help-list">
+        <li><b>Write your thoughts</b> (Tier 2 and Premium): type a sentence or short paragraph, press send, and get it refined. Handy for speaking-test prep and when you'd rather type than talk.</li>
+        <li><b>Reading back?</b> The list stays where you scrolled while new sentences come in. A <i>↑ New corrections</i> button appears to jump to the latest.</li>
+        <li><b>Copy</b> buttons on each card let you paste a correction into your class chat.</li>
+        <li><b>Save your defaults</b> on the Dashboard so every class starts with your usual Mode, Level and language.</li>
+        <li><b>Teaching someone?</b> Let your student know an AI helper is listening. TeachPaL doesn't record audio or save transcripts.</li>
+      </ul>
+    </section>
+
+    <section class="card dash-card help-card">
+      <div class="card-head"><div class="card-title">Something not working?</div></div>
+      <ul class="help-list">
+        <li><b>No sound picked up (tab audio):</b> run the share again and make sure <i>Share audio</i> is ticked in the share window.</li>
+        <li><b>Microphone blocked:</b> click the lock icon next to the web address, allow the microphone, and reload.</li>
+        <li><b>Blocks haven't appeared after paying:</b> check the reference number you sent, then message us with it.</li>
+        <li>Still stuck? <a href="mailto:haroldderamos28@gmail.com">Contact us</a> and tell us what you saw.</li>
+      </ul>
+      <div><button type="button" class="primary-btn big-btn" id="helpGoLive">Start a class →</button></div>
     </section>
   </div>
 
@@ -642,13 +721,22 @@
       <div class="modal-head"><div class="modal-title" id="consentTitle">Before you start with TeachPaL</div></div>
       <p class="modal-text">TeachPaL listens to speech, so please read and tick each point. They protect you, anyone you teach, and TeachPaL.</p>
       <div class="notice ok">🔒 TeachPaL does <b>not</b> record audio or save transcripts. Speech is turned into text live, and corrections stay on your screen only.</div>
+      <div class="notice" id="consentChanges" hidden>
+        <b>What's new:</b>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li>TeachPaL is now for learners practising their own English too, not only trainers.</li>
+          <li>New "Write your thoughts" box (Tier 2 and Premium): typed text is refined like speech and isn't stored.</li>
+          <li>Accounts are for adults; under 18s may use a parent's or guardian's account with permission.</li>
+          <li>Don't use TeachPaL during exams or interviews where outside help isn't allowed.</li>
+        </ul>
+      </div>
       <div class="consent-list" id="consentList">
         <label class="consent-item"><input type="checkbox"> <span><b>If I use it while teaching:</b> I'm allowed to under my teaching platform's or school's rules, and I'll tell my students an AI helper is listening (with a parent's or guardian's agreement for students under 18). I understand TeachPaL is an independent tool, not part of any platform.</span></label>
         <label class="consent-item"><input type="checkbox"> <span><b>If I use it to practise on my own:</b> I'll use only my own voice and words, and I won't use it during an exam, test or interview where outside help isn't allowed.</span></label>
         <label class="consent-item"><input type="checkbox"> <span>I'm 18 or older, or I'm using my parent's or guardian's account with their permission.</span></label>
         <label class="consent-item"><input type="checkbox"> <span>I won't say or type sensitive personal information (like health details, ID numbers, passwords or bank details) while TeachPaL is listening or in "Write your thoughts".</span></label>
         <label class="consent-item"><input type="checkbox"> <span>I understand corrections can be wrong, and I'll check them before relying on them or sharing them.</span></label>
-        <label class="consent-item"><input type="checkbox"> <span>I've read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+        <label class="consent-item" id="consentReadItem"><input type="checkbox"> <span>I've read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
       </div>
       <div class="msg" id="consentMsg" role="status" aria-live="polite"></div>
       <div class="modal-actions">
@@ -2548,18 +2636,27 @@ function fmtDate(iso) { const d = new Date(iso); return d.toLocaleDateString(und
 function fmtTime(iso) { const d = new Date(iso); return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
 function fmtLen(sec) { const m = Math.round((sec || 0) / 60); return m < 1 ? "<1 min" : m + " min"; }
 
+const tabHelp = document.getElementById("tabHelp");
+const helpView = document.getElementById("helpView");
 function showTab(which, remember) {
-  const live = which === "live";
+  const live = which === "live", help = which === "help";
   liveView.hidden = !live;
-  dashView.hidden = live;
+  helpView.hidden = !help;
+  dashView.hidden = live || help;
   tabLive.setAttribute("aria-selected", live ? "true" : "false");
-  tabDash.setAttribute("aria-selected", live ? "false" : "true");
-  if (remember) { try { localStorage.setItem(TAB_KEY, which); } catch {} }
-  if (!live && account) loadDashboard();
+  tabHelp.setAttribute("aria-selected", help ? "true" : "false");
+  tabDash.setAttribute("aria-selected", live || help ? "false" : "true");
+  // Reading the guide isn't worth reopening on the next visit.
+  if (remember && !help) { try { localStorage.setItem(TAB_KEY, which); } catch {} }
+  if (help) window.scrollTo(0, 0);
+  if (!live && !help && account) loadDashboard();
 }
 tabDash.addEventListener("click", function () { showTab("dash", true); });
 tabLive.addEventListener("click", function () { showTab("live", true); });
+tabHelp.addEventListener("click", function () { showTab("help", true); });
 document.getElementById("goLiveBtn").addEventListener("click", function () { showTab("live", true); });
+document.getElementById("goHelpBtn").addEventListener("click", function () { showTab("help", true); });
+document.getElementById("helpGoLive").addEventListener("click", function () { showTab("live", true); });
 
 function initialTab() {
   let saved = "dash";
@@ -2743,6 +2840,20 @@ async function loadAdmin() {
     renderAdmin(r.data);
   } catch (error) { console.error(error); }
 }
+function ago(iso) {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return d <= 0 ? "Today" : d === 1 ? "Yesterday" : d + " days ago";
+}
+// What needs your attention: bought but never tried, gone quiet, running low.
+function trainerStatus(t) {
+  const left = (t.basic || 0) + (t.tier2 || 0) + (t.premium || 0);
+  const days = t.last_class ? (Date.now() - new Date(t.last_class).getTime()) / 86400000 : null;
+  if (!t.classes) return left > 0 ? { cls: "st-never", label: "Never tried" } : { cls: "st-none", label: "No blocks" };
+  if (left === 0) return { cls: "st-low", label: "Out of blocks" };
+  if (left <= 1) return { cls: "st-low", label: "Low" };
+  if (days !== null && days >= 7) return { cls: "st-quiet", label: "Gone quiet" };
+  return { cls: "st-active", label: "Active" };
+}
 function renderAdmin(a) {
   const pend = a.pending || [];
   document.getElementById("admTitle").textContent = "🛠 Admin · " + (pend.length ? pend.length + " payment" + (pend.length > 1 ? "s" : "") + " waiting" : "no payments waiting");
@@ -2750,9 +2861,14 @@ function renderAdmin(a) {
     return `<tr><td>${fmtDate(p.created_at)} ${fmtTime(p.created_at)}</td><td>${escapeHtml(p.email)}</td><td>${p.blocks} <span class="pill ${p.tier}">${TIER_NAMES[p.tier]}</span></td><td class="num"><b>${peso(p.amount_php)}</b></td><td>${escapeHtml((PAY_INFO[p.method] || {}).name || p.method)} · <b>${escapeHtml(p.reference)}</b></td>
       <td><div class="row-actions"><button type="button" class="sm-btn approve" data-id="${p.id}" data-act="approve">Approve</button><button type="button" class="sm-btn reject" data-id="${p.id}" data-act="reject">Reject</button></div></td></tr>`;
   }).join("") : '<tr><td colspan="6" class="empty-row">Nothing waiting. Check your GCash / Maya / BDO app when a request comes in.</td></tr>';
+  const st = a.stats || {};
+  document.getElementById("admStats").innerHTML = [
+    [st.trainers || 0, "Signed up"], [st.active || 0, "Ran a class"], [st.classes_7d || 0, "Classes, 7 days"], [st.blocks_outstanding || 0, "Blocks outstanding"],
+  ].map(function (x) { return `<div class="adm-stat"><b>${x[0]}</b><span>${x[1]}</span></div>`; }).join("");
   document.getElementById("admTrainers").innerHTML = (a.trainers || []).map(function (t) {
-    return `<tr><td>${escapeHtml(t.email || "")}</td><td class="num">${t.basic}</td><td class="num">${t.tier2}</td><td class="num">${t.premium}</td><td class="num">${t.classes}</td><td>${t.last_class ? fmtDate(t.last_class) : '<span class="muted">—</span>'}</td></tr>`;
-  }).join("") || '<tr><td colspan="6" class="empty-row">No trainers yet.</td></tr>';
+    const s = trainerStatus(t);
+    return `<tr><td>${escapeHtml(t.email || "")}<br><span class="pill ${s.cls}">${s.label}</span></td><td>${t.created_at ? fmtDate(t.created_at) : ""}</td><td class="num">${t.basic}</td><td class="num">${t.tier2}</td><td class="num">${t.premium}</td><td class="num">${t.used || 0} / ${t.added || 0}</td><td class="num">${t.minutes || 0}</td><td>${t.last_class ? ago(t.last_class) : '<span class="muted">—</span>'}</td></tr>`;
+  }).join("") || '<tr><td colspan="8" class="empty-row">No trainers yet.</td></tr>';
   document.getElementById("admRecent").innerHTML = (a.recent || []).map(function (p) {
     return `<tr><td>${p.decided_at ? fmtDate(p.decided_at) : ""}</td><td>${escapeHtml(p.email)}</td><td>${p.blocks} ${TIER_NAMES[p.tier]} · ${peso(p.amount_php)}</td><td>${escapeHtml((PAY_INFO[p.method] || {}).name || p.method)} ${escapeHtml(p.reference)}</td><td><span class="pill ${p.status}">${p.status}</span></td></tr>`;
   }).join("") || '<tr><td class="empty-row">No decisions yet.</td></tr>';
@@ -2801,14 +2917,28 @@ const consentModal = document.getElementById("consentModal");
 const consentBoxes = Array.from(document.querySelectorAll("#consentList input[type=checkbox]"));
 const consentAgree = document.getElementById("consentAgree");
 function needsConsent() { return !!account && account.accepted === false; }
+// First time: every point must be ticked. Agreed before to an older version: just a short
+// "what's new" note and one box, since they've already ticked the rest once.
+function requiredConsentBoxes() { return consentBoxes.filter(function (b) { return !b.closest(".consent-item").hidden; }); }
 function showConsent() {
-  consentBoxes.forEach(function (b) { b.checked = false; });
+  const returning = !!(account && account.previously_accepted);
+  document.getElementById("consentTitle").textContent = returning ? "We've updated our Terms" : "Before you start with TeachPaL";
+  document.getElementById("consentChanges").hidden = !returning;
+  document.querySelector("#consentModal .modal-text").textContent = returning
+    ? "You agreed to our Terms before. Here's what changed. Please have a quick look and agree to continue."
+    : "TeachPaL listens to speech, so please read and tick each point. They protect you, anyone you teach, and TeachPaL.";
+  consentBoxes.forEach(function (b) {
+    const item = b.closest(".consent-item");
+    item.hidden = returning && item.id !== "consentReadItem";
+    b.checked = false;
+  });
+  document.getElementById("consentReadItem").querySelector("span").firstChild.textContent = returning ? "I've read and agree to the updated " : "I've read and agree to the ";
   consentAgree.disabled = true;
   document.getElementById("consentMsg").textContent = "";
   consentModal.hidden = false;
 }
 consentBoxes.forEach(function (b) {
-  b.addEventListener("change", function () { consentAgree.disabled = !consentBoxes.every(function (x) { return x.checked; }); });
+  b.addEventListener("change", function () { consentAgree.disabled = !requiredConsentBoxes().every(function (x) { return x.checked; }); });
 });
 consentAgree.addEventListener("click", async function () {
   const msg = document.getElementById("consentMsg");
@@ -2818,6 +2948,7 @@ consentAgree.addEventListener("click", async function () {
     const r = await api("/consent", { version: account.terms_version, agree: true });
     if (!r.ok) throw new Error(r.data.error || "Couldn't save. Please try again.");
     account.accepted = true;
+    account.previously_accepted = false;
     consentModal.hidden = true;
     setStatus("Thanks! You're ready to start a class.");
   } catch (error) {
