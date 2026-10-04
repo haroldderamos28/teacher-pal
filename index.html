@@ -85,6 +85,7 @@
     #stopBtn:hover:not(:disabled) { background: rgba(180,69,47,0.06); }
     .action-bar button:disabled { opacity: 0.45; cursor: not-allowed; }
     .guard-pill { font-weight: 700; font-size: 13px; color: var(--muted); background: rgba(27,42,74,0.06); border-radius: 999px; padding: 8px 14px; }
+    .guard-pill.off { color: #A4472A; background: rgba(224,120,86,0.14); }
     .guard-pill.on { color: #8A5A12; background: rgba(176,122,30,0.16); }
     .class-note { font-weight: 700; font-size: 14px; color: #2F6672; background: rgba(62,124,138,0.12); border-radius: 999px; padding: 10px 16px; font-variant-numeric: tabular-nums; }
     .class-note:empty { display: none; }
@@ -538,7 +539,7 @@
         <div><b>Mode</b><p>How the AI rewrites what the student said. Natural sounds native; Business and Professional suit workplace English; Concise is shorter; Student-friendly is the simplest wording.</p></div>
         <div><b>Level</b><p>The student's English level. It keeps suggestions at the right difficulty and skips very short replies (under 4 words for Basic, 6 for Intermediate, 8 for Advanced).</p></div>
         <div><b>Support language</b><p>Choose a language and beginners also see a translation of the correction. Available on Tier 2 and Premium.</p></div>
-        <div><b>Audio source</b><p>Microphone listens through your mic. Tab / window audio listens to your online class. Use Chrome or Edge on a computer for tab audio.</p></div>
+        <div><b>Audio source</b><p>Tab / window audio listens to your online lesson and skips your own voice. Microphone is for practising on your own. Use Chrome or Edge on a computer for tab audio.</p></div>
       </div>
     </section>
 
@@ -565,7 +566,7 @@
       <div class="card-head"><div class="card-title">Tips and extras</div></div>
       <ul class="help-list">
         <li><b>Write your thoughts</b> (Tier 2 and Premium): type a sentence or short paragraph, press send, and get it refined. Handy for speaking-test prep and when you'd rather type than talk.</li>
-        <li><b>Skip my voice</b> (tab audio): TeachPaL also listens to your mic, only to notice when you're talking, and ignores the lesson audio while you speak. That way your own sentences, or their echo from the student's side, don't get corrected. Use a headset, and turn it off if the student's words go missing.</li>
+        <li><b>Your voice is skipped automatically</b> with tab audio: TeachPaL uses your mic only to notice when you're talking, and ignores the lesson audio while you speak, so your own sentences (or their echo from the student's side) don't get corrected. Allow the microphone when asked, and use a headset.</li>
         <li><b>Reading back?</b> The list stays where you scrolled while new sentences come in. A <i>↑ New corrections</i> button appears to jump to the latest.</li>
         <li><b>Copy</b> buttons on each card let you paste a correction into your class chat.</li>
         <li><b>Save your defaults</b> on the Dashboard so every class starts with your usual Mode, Level and language.</li>
@@ -576,7 +577,7 @@
     <section class="card dash-card help-card">
       <div class="card-head"><div class="card-title">Something not working?</div></div>
       <ul class="help-list">
-        <li><b>Your own sentences are being corrected:</b> check that <i>Skip my voice</i> is ticked and that you allowed the microphone when asked.</li>
+        <li><b>Your own sentences are being corrected:</b> check that you're using <i>Tab / window audio</i> and that you allowed the microphone (the pill next to the timer should say "Skipping your voice").</li>
         <li><b>No sound picked up (tab audio):</b> run the share again and make sure <i>Share audio</i> is ticked in the share window.</li>
         <li><b>Microphone blocked:</b> click the lock icon next to the web address, allow the microphone, and reload.</li>
         <li><b>Blocks haven't appeared after paying:</b> check the reference number you sent, then message us with it.</li>
@@ -685,11 +686,10 @@
         </label><span class="info" tabindex="0" role="img" aria-label="How long to wait before treating the student as finished. Slow gives hesitant beginners time to find words. Fast sends corrections sooner for quick talkers. Changing it mid-lesson reconnects quietly." data-tip="How long to wait before treating the student as finished. Slow gives hesitant beginners time to find words. Fast sends corrections sooner for quick talkers. Changing it mid-lesson reconnects quietly.">i</span></span>
         <span class="field"><label>Audio source
           <select id="audioSource">
-            <option value="mic" selected>Microphone</option>
-            <option value="tab">Tab / window audio (share screen)</option>
+            <option value="tab" selected>Tab / window audio (for lessons)</option>
+            <option value="mic">Microphone (practice on your own)</option>
           </select>
-        </label><span class="info" tabindex="0" role="img" aria-label="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'." data-tip="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'.">i</span></span>
-        <span class="field"><label class="check"><input type="checkbox" id="voiceGuard" checked> Skip my voice</label><span class="info" tabindex="0" role="img" aria-label="With tab audio, TeachPaL also listens to your own microphone, only to notice when you're talking. While you talk (and for a moment after, to catch echo) it ignores the lesson audio, so your own sentences aren't corrected. Your mic audio is never sent anywhere. Turn this off if the student's words go missing, for example if you're not using a headset." data-tip="With tab audio, TeachPaL also listens to your own microphone, only to notice when you're talking. While you talk (and for a moment after, to catch echo) it ignores the lesson audio, so your own sentences aren't corrected. Your mic audio is never sent anywhere. Turn this off if the student's words go missing, for example if you're not using a headset.">i</span></span>
+        </label><span class="info" tabindex="0" role="img" aria-label="Tab / window audio is for lessons: TeachPaL listens to the lesson tab and automatically skips your own voice (it uses your mic only to notice when you talk; use a headset). When asked, pick the lesson tab and turn on 'Share audio', then allow the microphone. Microphone is for practising on your own: it hears everything you say." data-tip="Tab / window audio is for lessons: TeachPaL listens to the lesson tab and automatically skips your own voice (it uses your mic only to notice when you talk; use a headset). When asked, pick the lesson tab and turn on 'Share audio', then allow the microphone. Microphone is for practising on your own: it hears everything you say.">i</span></span>
         <span class="field" id="engineField" hidden><label>AI engine
           <select id="engine">
             <option value="auto" selected>Match block type</option>
@@ -1472,41 +1472,44 @@ async function startAudioPipeline() {
 // Tab audio should only carry the student, but echo from the student's speakers, or a
 // platform that plays your own voice back, can sneak the trainer's voice in. The trainer's
 // mic is used only to notice when they're talking — it is never sent anywhere.
-const voiceGuardEl = document.getElementById("voiceGuard");
 const guardPill = document.getElementById("guardPill");
-const GUARD_KEY = "teachpal_voice_guard";
 let guardStream = null, guardNode = null;
-try { if (localStorage.getItem(GUARD_KEY) === "off") voiceGuardEl.checked = false; } catch {}
-function syncGuardField() {
-  voiceGuardEl.closest(".field").hidden = audioSourceEl.value !== "tab";
-}
-syncGuardField();
-audioSourceEl.addEventListener("change", syncGuardField);
-voiceGuardEl.addEventListener("change", function () {
-  try { localStorage.setItem(GUARD_KEY, voiceGuardEl.checked ? "on" : "off"); } catch {}
-  if (!running) return;
-  if (voiceGuardEl.checked && audioSourceEl.dataset.current === "tab") startVoiceGuard(); else stopVoiceGuard();
-});
+// If the guard is closed most of the time, the mic is probably hearing the lesson from
+// the speakers (no headset), which would hide the student. Warn once per class.
+let guardOnSince = 0, guardOnTotal = 0, guardStartedAt = 0, guardWarned = false;
 async function startVoiceGuard() {
-  if (guardStream || !voiceGuardEl.checked || !workletNode || !audioCtx) return;
+  if (guardStream || !workletNode || !audioCtx) return;
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    if (!running || !workletNode || audioSourceEl.dataset.current !== "tab" || !voiceGuardEl.checked) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+    if (!running || !workletNode || audioSourceEl.dataset.current !== "tab") { s.getTracks().forEach(function (t) { t.stop(); }); return; }
     guardStream = s;
     guardNode = audioCtx.createMediaStreamSource(s);
     guardNode.connect(workletNode, 0, 1);
     guardPill.hidden = false;
+    guardStartedAt = Date.now(); guardOnTotal = 0; guardOnSince = 0; guardWarned = false;
     showGuard(false);
   } catch (error) {
-    toast("Couldn't use your microphone to skip your own voice, so TeachPaL may also correct what you say. Allow the microphone to turn this on.");
+    guardPill.hidden = false;
+    guardPill.classList.add("off");
+    guardPill.textContent = "⚠ Your voice may be corrected";
+    toast("Please allow the microphone: TeachPaL uses it only to notice when you're talking, so your own sentences aren't corrected. Click the lock icon next to the web address to allow it.");
   }
 }
 function stopVoiceGuard() {
   if (guardNode) { try { guardNode.disconnect(); } catch {} guardNode = null; }
   if (guardStream) { guardStream.getTracks().forEach(function (t) { t.stop(); }); guardStream = null; }
   guardPill.hidden = true;
+  guardPill.classList.remove("off");
 }
 function showGuard(talking) {
+  const now = Date.now();
+  if (talking && !guardOnSince) guardOnSince = now;
+  if (!talking && guardOnSince) { guardOnTotal += now - guardOnSince; guardOnSince = 0; }
+  const span = now - guardStartedAt, on = guardOnTotal + (guardOnSince ? now - guardOnSince : 0);
+  if (!guardWarned && guardStartedAt && !paused && span > 120000 && on / span > 0.7) {
+    guardWarned = true;
+    toast("🎧 Your mic seems to hear the lesson too, so some of your student's words may be skipped. Please use a headset.");
+  }
   guardPill.classList.toggle("on", !!talking);
   guardPill.textContent = talking ? "🛡 You're talking · skipped" : "🛡 Skipping your voice";
 }
@@ -2791,7 +2794,7 @@ function feedbackContext() {
     .map(function (b) { const m = ua.match(b[1]); return m ? b[0] + " " + m[1] : ""; }).filter(Boolean)[0];
   const browser = pick || "browser";
   const os = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "Mac" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Linux/.test(ua) ? "Linux" : "";
-  const audio = audioSourceEl.value === "tab" ? "tab audio" + (voiceGuardEl.checked ? " + skip my voice" : "") : "microphone";
+  const audio = audioSourceEl.value === "tab" ? "tab audio" + (guardStream ? "" : " (voice skip off)") : "microphone";
   return [browser, os, TIER_NAMES[blockTypeEl.value], audio, running ? "during a class" : ""].filter(Boolean).join(" · ");
 }
 document.getElementById("fbkKind").addEventListener("click", function (e) {
