@@ -260,6 +260,16 @@
     .pill { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: 12px; font-weight: 700; background: rgba(27,42,74,0.07); color: var(--muted); }
     .pill.basic { background: rgba(91,100,114,0.12); color: #4A5260; } .pill.tier2 { background: rgba(62,124,138,0.13); color: #2F6672; } .pill.premium { background: rgba(201,146,46,0.16); color: #8A5E12; }
     .adm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 10px; }
+    .fbk-intro { margin: 0; font-size: 15px; line-height: 1.55; color: var(--muted); }
+    .fbk-text { min-height: 120px; resize: vertical; font-weight: 500; line-height: 1.5; }
+    .fbk-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .fbk-note { font-size: 13px; color: var(--muted); flex: 1 1 260px; }
+    .fbk-msg-cell { white-space: pre-wrap; max-width: 520px; }
+    .fbk-ctx { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
+    tr.fbk-done td { opacity: 0.55; }
+    .pill.idea { background: rgba(62,124,138,0.14); color: #2F6672; }
+    .pill.problem { background: rgba(224,120,86,0.16); color: #A4472A; }
+    .pill.other { background: rgba(27,42,74,0.08); color: var(--ink); }
     .help-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.55; }
     .help-steps li::marker { font-weight: 800; color: var(--teal); }
     .help-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; }
@@ -428,7 +438,7 @@
     <section class="card dash-hero">
       <div>
         <div class="setup-title" id="dashHello">Welcome back!</div>
-        <div class="setup-sub">Your blocks, classes and purchases in one place. <button type="button" class="link-btn" id="goHelpBtn">New here? See how it works →</button></div>
+        <div class="setup-sub">Your blocks, classes and purchases in one place. <button type="button" class="link-btn" id="goHelpBtn">New here? See how it works →</button> <button type="button" class="link-btn" id="goFeedbackBtn">Ideas or problems? Tell us →</button></div>
       </div>
       <button type="button" class="primary-btn big-btn" id="goLiveBtn">Start a class →</button>
     </section>
@@ -504,6 +514,8 @@
       <div class="card-title" style="margin-top:8px">Trainers</div>
       <div class="adm-stats" id="admStats"></div>
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trainer</th><th>Joined</th><th class="num">Basic</th><th class="num">Tier 2</th><th class="num">Premium</th><th class="num">Used / added</th><th class="num">Min</th><th>Last class</th></tr></thead><tbody id="admTrainers"></tbody></table></div>
+      <div class="card-title" style="margin-top:8px" id="admFbkTitle">Feedback</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sent</th><th>Trainer</th><th>Type</th><th>Message</th><th></th></tr></thead><tbody id="admFeedback"></tbody></table></div>
       <div class="card-title" style="margin-top:8px">Recent decisions</div>
       <div class="tbl-wrap"><table class="tbl"><tbody id="admRecent"></tbody></table></div>
     </section>
@@ -568,9 +580,25 @@
         <li><b>No sound picked up (tab audio):</b> run the share again and make sure <i>Share audio</i> is ticked in the share window.</li>
         <li><b>Microphone blocked:</b> click the lock icon next to the web address, allow the microphone, and reload.</li>
         <li><b>Blocks haven't appeared after paying:</b> check the reference number you sent, then message us with it.</li>
-        <li>Still stuck? <a href="mailto:haroldderamos28@gmail.com">Contact us</a> and tell us what you saw.</li>
+        <li>Still stuck? Use the form below, or <a href="mailto:haroldderamos28@gmail.com">email us</a>, and tell us what you saw.</li>
       </ul>
       <div><button type="button" class="primary-btn big-btn" id="helpGoLive">Start a class →</button></div>
+    </section>
+
+    <section class="card dash-card help-card" id="feedbackCard" aria-labelledby="fbkTitle">
+      <div class="card-head"><div class="card-title" id="fbkTitle">💬 Ideas and problems</div></div>
+      <p class="fbk-intro">Have an idea, or something not working the way you'd like? Tell us here. Every message is read, and it shapes what we build next.</p>
+      <div class="seg" id="fbkKind" role="group" aria-label="Type of feedback">
+        <button type="button" data-kind="idea" aria-pressed="true">💡 Suggestion</button>
+        <button type="button" data-kind="problem" aria-pressed="false">🛠 Problem</button>
+        <button type="button" data-kind="other" aria-pressed="false">💬 Other</button>
+      </div>
+      <textarea class="text-input fbk-text" id="fbkText" maxlength="2000" rows="5" aria-label="Your feedback" placeholder="What would make TeachPaL better for your classes?"></textarea>
+      <div class="fbk-row">
+        <span class="fbk-note" id="fbkNote">We'll include your email, browser and class settings so we can follow up. Never your students' words.</span>
+        <button type="button" class="primary-btn" id="fbkSend">Send</button>
+      </div>
+      <div class="msg" id="fbkMsg" role="status" aria-live="polite"></div>
     </section>
   </div>
 
@@ -720,7 +748,7 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <footer class="app-footer">TeachPaL · <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="mailto:haroldderamos28@gmail.com">Contact</a></footer>
+  <footer class="app-footer">TeachPaL · <a href="terms.html" target="_blank" rel="noopener">Terms of Use</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> · <a href="mailto:haroldderamos28@gmail.com">Contact</a> · <a href="#feedback" id="footFeedback">Send feedback</a></footer>
 
   <div class="modal" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle" hidden>
     <div class="modal-card">
@@ -2736,6 +2764,57 @@ document.getElementById("goLiveBtn").addEventListener("click", function () { sho
 document.getElementById("goHelpBtn").addEventListener("click", function () { showTab("help", true); });
 document.getElementById("helpGoLive").addEventListener("click", function () { showTab("live", true); });
 
+// ---- Feedback: suggestions and problem reports, read in the admin panel ----
+const fbk = { kind: "idea" };
+const FBK_PLACEHOLDER = {
+  idea: "What would make TeachPaL better for your classes?",
+  problem: "What happened, and what did you expect? For example: which tab or button, and roughly when.",
+  other: "Anything you'd like to tell us.",
+};
+function openFeedbackForm(kind) {
+  if (!account) { location.href = "mailto:haroldderamos28@gmail.com?subject=TeachPaL%20feedback"; return; }
+  if (kind) setFbkKind(kind);
+  showTab("help", false);
+  const card = document.getElementById("feedbackCard");
+  if (card.scrollIntoView) card.scrollIntoView({ block: "start" });
+  try { document.getElementById("fbkText").focus({ preventScroll: true }); } catch {}
+}
+function setFbkKind(kind) {
+  fbk.kind = kind;
+  document.querySelectorAll("#fbkKind button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.kind === kind ? "true" : "false"); });
+  document.getElementById("fbkText").placeholder = FBK_PLACEHOLDER[kind];
+}
+// A short, student-free description of the setup, so problems can be reproduced.
+function feedbackContext() {
+  const ua = navigator.userAgent || "";
+  const pick = [["Edge", /Edg\/(\d+)/], ["Opera", /OPR\/(\d+)/], ["Firefox", /Firefox\/(\d+)/], ["Chrome", /Chrome\/(\d+)/], ["Safari", /Version\/(\d+)/]]
+    .map(function (b) { const m = ua.match(b[1]); return m ? b[0] + " " + m[1] : ""; }).filter(Boolean)[0];
+  const browser = pick || "browser";
+  const os = /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "Mac" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Linux/.test(ua) ? "Linux" : "";
+  const audio = audioSourceEl.value === "tab" ? "tab audio" + (voiceGuardEl.checked ? " + skip my voice" : "") : "microphone";
+  return [browser, os, TIER_NAMES[blockTypeEl.value], audio, running ? "during a class" : ""].filter(Boolean).join(" · ");
+}
+document.getElementById("fbkKind").addEventListener("click", function (e) {
+  const b = e.target.closest("button[data-kind]");
+  if (b) setFbkKind(b.dataset.kind);
+});
+document.getElementById("fbkSend").addEventListener("click", async function () {
+  const btn = this, msg = document.getElementById("fbkMsg"), area = document.getElementById("fbkText");
+  const text = area.value.trim();
+  if (text.length < 3) { msg.className = "msg bad"; msg.textContent = "Please write a few words first."; area.focus(); return; }
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Sending…";
+  try {
+    const r = await api("/feedback", { kind: fbk.kind, message: text, context: feedbackContext() });
+    if (!r.ok) throw new Error(r.data.error || "Couldn't send it. Please try again.");
+    area.value = "";
+    msg.className = "msg ok";
+    msg.textContent = fbk.kind === "problem" ? "✓ Sent. Thanks for telling us. We'll look into it and email you if we need more details." : "✓ Sent. Thank you, we read every message.";
+  } catch (error) { msg.className = "msg bad"; msg.textContent = error.message; }
+  btn.disabled = false;
+});
+document.getElementById("goFeedbackBtn").addEventListener("click", function () { openFeedbackForm(); });
+document.getElementById("footFeedback").addEventListener("click", function (e) { e.preventDefault(); openFeedbackForm(); });
+
 function initialTab() {
   let saved = "dash";
   try { saved = localStorage.getItem(TAB_KEY) || "dash"; } catch {}
@@ -2947,6 +3026,14 @@ function renderAdmin(a) {
     const s = trainerStatus(t);
     return `<tr><td>${escapeHtml(t.email || "")}<br><span class="pill ${s.cls}">${s.label}</span></td><td>${t.created_at ? fmtDate(t.created_at) : ""}</td><td class="num">${t.basic}</td><td class="num">${t.tier2}</td><td class="num">${t.premium}</td><td class="num">${t.used || 0} / ${t.added || 0}</td><td class="num">${t.minutes || 0}</td><td>${t.last_class ? ago(t.last_class) : '<span class="muted">—</span>'}</td></tr>`;
   }).join("") || '<tr><td colspan="8" class="empty-row">No trainers yet.</td></tr>';
+  const fb = a.feedback || [];
+  const fbNew = (a.stats && a.stats.feedback_new) || fb.filter(function (f) { return f.status === "new"; }).length;
+  document.getElementById("admFbkTitle").textContent = "Feedback" + (fbNew ? " · " + fbNew + " new" : "");
+  const FBK_NAMES = { idea: "Suggestion", problem: "Problem", other: "Other" };
+  document.getElementById("admFeedback").innerHTML = fb.map(function (f) {
+    const done = f.status === "done";
+    return `<tr class="${done ? "fbk-done" : ""}"><td>${fmtDate(f.created_at)}</td><td>${escapeHtml(f.email)}</td><td><span class="pill ${f.kind}">${FBK_NAMES[f.kind] || f.kind}</span></td><td class="fbk-msg-cell">${escapeHtml(f.message)}${f.context ? `<span class="fbk-ctx">${escapeHtml(f.context)}</span>` : ""}</td><td><button type="button" class="sm-btn" data-fbk="${f.id}" data-done="${done ? "0" : "1"}">${done ? "Reopen" : "Done"}</button></td></tr>`;
+  }).join("") || '<tr><td colspan="5" class="empty-row">No feedback yet.</td></tr>';
   document.getElementById("admRecent").innerHTML = (a.recent || []).map(function (p) {
     return `<tr><td>${p.decided_at ? fmtDate(p.decided_at) : ""}</td><td>${escapeHtml(p.email)}</td><td>${p.blocks} ${TIER_NAMES[p.tier]} · ${peso(p.amount_php)}</td><td>${escapeHtml((PAY_INFO[p.method] || {}).name || p.method)} ${escapeHtml(p.reference)}</td><td><span class="pill ${p.status}">${p.status}</span></td></tr>`;
   }).join("") || '<tr><td class="empty-row">No decisions yet.</td></tr>';
@@ -2973,6 +3060,16 @@ document.getElementById("admPending").addEventListener("click", async function (
   } catch (error) { msg.className = "msg bad"; msg.textContent = error.message; btn.disabled = false; }
 });
 document.getElementById("admRefresh").addEventListener("click", loadAdmin);
+document.getElementById("admFeedback").addEventListener("click", async function (e) {
+  const btn = e.target.closest("button[data-fbk]");
+  if (!btn) return;
+  btn.disabled = true;
+  try {
+    const r = await api("/admin/feedback-done", { id: Number(btn.dataset.fbk), done: btn.dataset.done === "1" });
+    if (!r.ok) throw new Error(r.data.error || "Couldn't update it.");
+    loadAdmin();
+  } catch (error) { const m = document.getElementById("admMsg"); m.className = "msg bad"; m.textContent = error.message; btn.disabled = false; }
+});
 document.getElementById("admAdd").addEventListener("click", async function () {
   const msg = document.getElementById("admMsg");
   const body = { email: document.getElementById("admEmail").value, tier: document.getElementById("admTier").value, blocks: Number(document.getElementById("admBlocks").value), note: document.getElementById("admNote").value.trim() || undefined };
