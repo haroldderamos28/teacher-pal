@@ -84,6 +84,8 @@
     #stopBtn { background: transparent; color: #B4452F; border: 1.5px solid rgba(180,69,47,0.35); padding: 11px 20px; font-size: 14px; }
     #stopBtn:hover:not(:disabled) { background: rgba(180,69,47,0.06); }
     .action-bar button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .guard-pill { font-weight: 700; font-size: 13px; color: var(--muted); background: rgba(27,42,74,0.06); border-radius: 999px; padding: 8px 14px; }
+    .guard-pill.on { color: #8A5A12; background: rgba(176,122,30,0.16); }
     .class-note { font-weight: 700; font-size: 14px; color: #2F6672; background: rgba(62,124,138,0.12); border-radius: 999px; padding: 10px 16px; font-variant-numeric: tabular-nums; }
     .class-note:empty { display: none; }
     .class-note.warn { color: #9A4A1E; background: rgba(224,120,86,0.16); }
@@ -551,6 +553,7 @@
       <div class="card-head"><div class="card-title">Tips and extras</div></div>
       <ul class="help-list">
         <li><b>Write your thoughts</b> (Tier 2 and Premium): type a sentence or short paragraph, press send, and get it refined. Handy for speaking-test prep and when you'd rather type than talk.</li>
+        <li><b>Skip my voice</b> (tab audio): TeachPaL also listens to your mic, only to notice when you're talking, and ignores the lesson audio while you speak. That way your own sentences, or their echo from the student's side, don't get corrected. Use a headset, and turn it off if the student's words go missing.</li>
         <li><b>Reading back?</b> The list stays where you scrolled while new sentences come in. A <i>↑ New corrections</i> button appears to jump to the latest.</li>
         <li><b>Copy</b> buttons on each card let you paste a correction into your class chat.</li>
         <li><b>Save your defaults</b> on the Dashboard so every class starts with your usual Mode, Level and language.</li>
@@ -561,6 +564,7 @@
     <section class="card dash-card help-card">
       <div class="card-head"><div class="card-title">Something not working?</div></div>
       <ul class="help-list">
+        <li><b>Your own sentences are being corrected:</b> check that <i>Skip my voice</i> is ticked and that you allowed the microphone when asked.</li>
         <li><b>No sound picked up (tab audio):</b> run the share again and make sure <i>Share audio</i> is ticked in the share window.</li>
         <li><b>Microphone blocked:</b> click the lock icon next to the web address, allow the microphone, and reload.</li>
         <li><b>Blocks haven't appeared after paying:</b> check the reference number you sent, then message us with it.</li>
@@ -657,6 +661,7 @@
             <option value="tab">Tab / window audio (share screen)</option>
           </select>
         </label><span class="info" tabindex="0" role="img" aria-label="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'." data-tip="Microphone hears your room, including you. Tab / window audio listens to the lesson tab directly and is clearer. When asked, pick the lesson tab and turn on 'Share tab audio'.">i</span></span>
+        <span class="field"><label class="check"><input type="checkbox" id="voiceGuard" checked> Skip my voice</label><span class="info" tabindex="0" role="img" aria-label="With tab audio, TeachPaL also listens to your own microphone, only to notice when you're talking. While you talk (and for a moment after, to catch echo) it ignores the lesson audio, so your own sentences aren't corrected. Your mic audio is never sent anywhere. Turn this off if the student's words go missing, for example if you're not using a headset." data-tip="With tab audio, TeachPaL also listens to your own microphone, only to notice when you're talking. While you talk (and for a moment after, to catch echo) it ignores the lesson audio, so your own sentences aren't corrected. Your mic audio is never sent anywhere. Turn this off if the student's words go missing, for example if you're not using a headset.">i</span></span>
         <span class="field" id="engineField" hidden><label>AI engine
           <select id="engine">
             <option value="auto" selected>Match block type</option>
@@ -678,6 +683,7 @@
         <button id="pauseBtn" disabled title="Pause listening and billing between students or while waiting. Press Resume to continue — no new permission needed.">Pause</button>
         <button id="stopBtn" disabled title="End the session and release the microphone or tab sharing.">Stop</button>
         <span class="class-note" id="classNote" aria-live="off"></span>
+        <span class="guard-pill" id="guardPill" hidden>🛡 Skipping your voice</span>
         <button type="button" id="clearBtn" title="Clear the screen for the next student (stop the class first)">↺ Start fresh</button>
         <button type="button" id="feedbackBtn" hidden title="Open the feedback for the last Premium class">📝 Lesson feedback</button>
       </div>
@@ -1341,10 +1347,34 @@ class PcmSender extends AudioWorkletProcessor {
     this.pos = 0;
     this.out = new Int16Array(1600);
     this.outLen = 0;
+    // "Skip my voice": the trainer's own mic arrives on input 1 (tab-audio classes only).
+    // While the trainer is talking, plus a short tail for echo from the student's side,
+    // the tab audio is replaced with silence so the trainer's voice never gets corrected.
+    this.floor = -60;       // running noise floor of the trainer's mic, in dB
+    this.loud = 0;          // consecutive loud blocks (128 samples each)
+    this.holdUntil = 0;     // keep the gate closed until this time (seconds)
+    this.gated = false;
+  }
+  micTalking(mic) {
+    let sum = 0;
+    for (let i = 0; i < mic.length; i++) sum += mic[i] * mic[i];
+    const db = 10 * Math.log10(sum / mic.length + 1e-12);
+    // The floor drops fast and rises slowly, so it follows room noise but not speech.
+    this.floor = db < this.floor ? this.floor + (db - this.floor) * 0.05 : this.floor + (db - this.floor) * 0.0008;
+    const loud = db > -48 && db > this.floor + 14;
+    this.loud = loud ? this.loud + 1 : 0;
+    if (this.loud >= 15) this.holdUntil = currentTime + 0.9; // ~40 ms of speech starts it (a key click is shorter); 0.9 s tail for echo
+    return currentTime < this.holdUntil;
   }
   process(inputs) {
-    const channel = inputs[0] && inputs[0][0];
+    let channel = inputs[0] && inputs[0][0];
     if (!channel) return true;
+    const mic = inputs[1] && inputs[1][0];
+    if (mic) {
+      const talking = this.micTalking(mic);
+      if (talking !== this.gated) { this.gated = talking; this.port.postMessage({ guard: talking }); }
+      if (talking) channel = new Float32Array(channel.length);
+    } else if (this.gated) { this.gated = false; this.port.postMessage({ guard: false }); }
     const data = new Float32Array(this.leftover.length + channel.length);
     data.set(this.leftover);
     data.set(channel, this.leftover.length);
@@ -1384,7 +1414,7 @@ async function startAudioPipeline() {
     URL.revokeObjectURL(moduleUrl);
   }
   sourceNode = audioCtx.createMediaStreamSource(stream);
-  workletNode = new AudioWorkletNode(audioCtx, "pcm-sender");
+  workletNode = new AudioWorkletNode(audioCtx, "pcm-sender", { numberOfInputs: 2 });
   // The worklet only runs while connected to the speakers, so route it through a
   // silent gain node — nothing is actually played back.
   muteNode = audioCtx.createGain();
@@ -1394,6 +1424,7 @@ async function startAudioPipeline() {
   muteNode.connect(audioCtx.destination);
 
   workletNode.port.onmessage = function (event) {
+    if (event.data && typeof event.data.guard === "boolean") { showGuard(event.data.guard); return; }
     if (!running || paused) return;
     if (socket && socket.readyState === WebSocket.OPEN && socket._configured) {
       socket.send(event.data);
@@ -1406,6 +1437,50 @@ async function startAudioPipeline() {
   };
 
   watchTracks(stream);
+  if (audioSourceEl.dataset.current === "tab") startVoiceGuard();
+}
+
+// ---- "Skip my voice" (tab audio only) ----
+// Tab audio should only carry the student, but echo from the student's speakers, or a
+// platform that plays your own voice back, can sneak the trainer's voice in. The trainer's
+// mic is used only to notice when they're talking — it is never sent anywhere.
+const voiceGuardEl = document.getElementById("voiceGuard");
+const guardPill = document.getElementById("guardPill");
+const GUARD_KEY = "teachpal_voice_guard";
+let guardStream = null, guardNode = null;
+try { if (localStorage.getItem(GUARD_KEY) === "off") voiceGuardEl.checked = false; } catch {}
+function syncGuardField() {
+  voiceGuardEl.closest(".field").hidden = audioSourceEl.value !== "tab";
+}
+syncGuardField();
+audioSourceEl.addEventListener("change", syncGuardField);
+voiceGuardEl.addEventListener("change", function () {
+  try { localStorage.setItem(GUARD_KEY, voiceGuardEl.checked ? "on" : "off"); } catch {}
+  if (!running) return;
+  if (voiceGuardEl.checked && audioSourceEl.dataset.current === "tab") startVoiceGuard(); else stopVoiceGuard();
+});
+async function startVoiceGuard() {
+  if (guardStream || !voiceGuardEl.checked || !workletNode || !audioCtx) return;
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    if (!running || !workletNode || audioSourceEl.dataset.current !== "tab" || !voiceGuardEl.checked) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+    guardStream = s;
+    guardNode = audioCtx.createMediaStreamSource(s);
+    guardNode.connect(workletNode, 0, 1);
+    guardPill.hidden = false;
+    showGuard(false);
+  } catch (error) {
+    toast("Couldn't use your microphone to skip your own voice, so TeachPaL may also correct what you say. Allow the microphone to turn this on.");
+  }
+}
+function stopVoiceGuard() {
+  if (guardNode) { try { guardNode.disconnect(); } catch {} guardNode = null; }
+  if (guardStream) { guardStream.getTracks().forEach(function (t) { t.stop(); }); guardStream = null; }
+  guardPill.hidden = true;
+}
+function showGuard(talking) {
+  guardPill.classList.toggle("on", !!talking);
+  guardPill.textContent = talking ? "🛡 You're talking · skipped" : "🛡 Skipping your voice";
 }
 
 startBtn.addEventListener("click", startListening);
@@ -1470,6 +1545,7 @@ async function switchAudioSource() {
   watchTracks(stream);
   stopStream(old);
   audioSourceEl.dataset.current = wanted;
+  if (wanted === "tab") startVoiceGuard(); else stopVoiceGuard();
   audioSourceEl.disabled = false;
   setStatus(paused ? "Paused. Nothing is being sent or billed." : "Listening...");
   toast("🎙 Now listening to the " + (wanted === "tab" ? "shared tab" : "microphone") + ".");
@@ -2320,6 +2396,7 @@ function cleanup(endDelayMs) {
   pauseBtn.disabled = true;
   pauseBtn.textContent = "Pause";
   stopBtn.disabled = true;
+  stopVoiceGuard();
   if (workletNode) { try { workletNode.port.onmessage = null; workletNode.disconnect(); } catch {} workletNode = null; }
   if (sourceNode) { try { sourceNode.disconnect(); } catch {} sourceNode = null; }
   if (muteNode) { try { muteNode.disconnect(); } catch {} muteNode = null; }
@@ -2520,12 +2597,13 @@ document.getElementById("fbPdf").addEventListener("click", function () {
   const rows = s.log.filter(function (x) { return x.corrected && x.corrected.trim() !== x.heard.trim(); }).slice(0, 25)
     .map(function (x) { return `<tr><td>${e(x.heard)}</td><td><b>${e(x.corrected)}</b></td></tr>`; }).join("");
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Lesson summary${s.student_name ? " - " + e(s.student_name) : ""}</title>
-<style>body{font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#1B2A4A;margin:32px;font-size:13px;line-height:1.5}
+<style>@page{size:auto;margin:0}body{font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#1B2A4A;margin:0 16mm;font-size:13px;line-height:1.5}
+table.pg{width:100%;border-collapse:collapse}table.pg>thead td,table.pg>tfoot td{height:14mm;padding:0;border:0}table.pg>tbody>tr>td{padding:0;border:0;width:auto}
 header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #E07856;padding-bottom:12px;margin-bottom:18px}
 header img{height:54px}h1{font-size:22px;margin:0}h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#5B6472;margin:18px 0 6px}
 .meta{color:#5B6472;text-align:right}ul{margin:0;padding-left:18px}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #eee;padding:6px 8px;vertical-align:top;width:50%}
 .chip{display:inline-block;border-radius:999px;padding:2px 9px;margin:2px;background:#f3ece4}.used{background:#dcecee}
-.fb{background:#FBF4E6;border-radius:10px;padding:12px 14px;white-space:pre-wrap}footer{margin-top:24px;color:#9aa0aa;font-size:11px;text-align:center}</style></head><body>
+.fb{background:#FBF4E6;border-radius:10px;padding:12px 14px;white-space:pre-wrap}footer{margin-top:24px;color:#9aa0aa;font-size:11px;text-align:center}</style></head><body><table class="pg"><thead><tr><td></td></tr></thead><tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
 <header><div>${logo ? `<img src="${logo}" alt="TeachPaL">` : "<h1>TeachPaL</h1>"}</div><div class="meta"><h1>Lesson summary</h1>${s.student_name ? e(s.student_name) + " · " : ""}${e(s.date.toLocaleDateString())} · class time ${e(s.classTime)}</div></header>
 <h2>Strengths</h2>${ul(splitItems(summarySection(t, "STRENGTHS:")))}
 <h2>To improve</h2>${ul(splitItems(summarySection(t, "IMPROVE:")))}
@@ -2534,7 +2612,7 @@ ${tallies.length ? `<h2>Mistakes this lesson</h2>${tallies.map(function (x) { re
 ${s.targets.used.length || s.targets.missed.length ? `<h2>Lesson phrases</h2>${s.targets.used.map(function (x) { return `<span class="chip used">✓ ${e(x)}</span>`; }).join("")}${s.targets.missed.map(function (x) { return `<span class="chip">${e(x)}</span>`; }).join("")}` : ""}
 ${rows ? `<h2>Corrections</h2><table><tr><td><i>You said</i></td><td><i>Better</i></td></tr>${rows}</table>` : ""}
 <h2>Feedback</h2><div class="fb">${e(feedbackText)}</div>
-<footer>Made with TeachPaL</footer></body></html>`;
+<footer>Made with TeachPaL</footer></td></tr></tbody></table></body></html>`;
   const frame = document.createElement("iframe");
   frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(frame);
