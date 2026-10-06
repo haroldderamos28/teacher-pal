@@ -873,7 +873,11 @@ let finalTranscript = "";
 // A turn shorter than the minimum (e.g. "Yesterday…" followed by a thinking pause) is held
 // briefly instead of thrown away, so it can join the start of the student's next turn.
 const HOLD_SHORT_MS = 8000;
+// A short bit that stops mid-sentence ("I need to") waits longer: the student is often
+// searching for a word or the teacher jumped in, and it should join what comes next.
+const HOLD_UNFINISHED_MS = 20000;
 let heldAt = 0;
+let heldMs = HOLD_SHORT_MS;
 // If the connection drops on its own, reconnect automatically up to this many times in a row.
 const MAX_RECONNECTS = 3;
 let reconnectAttempts = 0;
@@ -1846,7 +1850,7 @@ async function connectSocket(options) {
       if (heldAt) {
         // New speech arrived: a short bit held from the last turn joins this one if it's
         // recent; if it's gone stale, it's dropped.
-        if (Date.now() - heldAt > HOLD_SHORT_MS) finalTranscript = "";
+        if (Date.now() - heldAt > heldMs) finalTranscript = "";
         clearHold();
       }
       finalTranscript += newFinal;
@@ -1943,7 +1947,7 @@ function friendlyVoiceError(code, message) {
 const UNFINISHED_HOLD_MS = 2500;
 // Words a sentence almost never ends on, even when the voice engine adds a full stop
 // ("...because." / "...and the."). Pronouns and verbs aren't here: "Thank you." is finished.
-const UNFINISHED_ENDINGS = new Set(("and but or because although the a an my your his her their our " +
+const UNFINISHED_ENDINGS = new Set(("and but or because although the a an my your his her their our to " +
   "um uh er ah").split(" "));
 function looksUnfinished(text) {
   const t = text.trim();
@@ -1971,14 +1975,15 @@ function flushLeftover() {
   // Too short on its own: hold it (it stays visible in Live Stream) in case the student
   // carries on. If nothing follows in time, quietly drop it.
   heldAt = Date.now();
+  heldMs = looksUnfinished(leftover) ? HOLD_UNFINISHED_MS : HOLD_SHORT_MS;
   renderLiveTranscript(leftover, "");
   holdTimer = setTimeout(function () {
-    if (heldAt && Date.now() - heldAt >= HOLD_SHORT_MS) {
+    if (heldAt && Date.now() - heldAt >= heldMs) {
       finalTranscript = "";
       heldAt = 0;
       renderLiveTranscript("", "");
     }
-  }, HOLD_SHORT_MS);
+  }, heldMs);
 }
 
 function clearHold() {
