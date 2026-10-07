@@ -282,6 +282,9 @@
     .help-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.55; }
     .help-steps li::marker { font-weight: 800; color: var(--teal); }
     .help-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; }
+    .help-lead { margin: 0 0 12px; font-size: 15px; line-height: 1.55; color: var(--muted); }
+    .help-note { margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+    #ncState { color: var(--teal); font-weight: 700; }
     .help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
     .help-grid > div { background: rgba(27,42,74,0.04); border-radius: 14px; padding: 12px 14px; }
     .help-grid p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
@@ -571,9 +574,20 @@
       <div class="card-head"><div class="card-title">Which block type?</div></div>
       <div class="help-grid">
         <div><b><span class="pill basic">Basic</span> ₱12</b><p>Corrections and a more natural way to say it, with the free AI.</p></div>
-        <div><b><span class="pill tier2">Tier 2</span> ₱15</b><p>Everything in Basic with the more accurate AI, plus other ways to say it, vocabulary, translation for beginners, and a <i>Write your thoughts</i> box.</p></div>
+        <div><b><span class="pill tier2">Tier 2</span> ₱15</b><p>Everything in Basic with the more accurate AI, plus other ways to say it, vocabulary, translation for beginners, a <i>Write your thoughts</i> box, and Noise Cancel for your mic.</p></div>
         <div><b><span class="pill premium">Premium</span> ₱17</b><p>Everything in Tier 2, plus a mistake tracker, target phrases, follow-up questions, highlights of what the student said well, and after-class feedback you can save as a PDF.</p></div>
       </div>
+    </section>
+
+    <section class="card dash-card help-card" id="ncHelp">
+      <div class="card-head"><div class="card-title">🎧 Noise Cancel for your mic</div><span class="pill tier2">Tier 2 · Premium</span></div>
+      <p class="help-lead">Removes the fan, aircon, rain, traffic and barking from your voice, so your students hear only you. It works in any class you teach in Chrome: Bizmates, Zoom in the browser, Google Meet, Teams, Cambly and more. Your voice is cleaned on your computer; nothing is recorded or sent.</p>
+      <ol class="help-steps">
+        <li><b>Add the TeachPaL Noise Cancel extension to Chrome.</b> <span id="ncGet"></span></li>
+        <li><b>Sign in here on TeachPaL</b> in the same Chrome. The extension picks up your account by itself.</li>
+        <li><b>Teach as usual.</b> The extension's icon shows <b>ON</b> while it's cleaning your mic. Click it to choose Standard or Strong.</li>
+      </ol>
+      <p class="help-note">Included while you have Tier 2 or Premium blocks left. New accounts get 7 days free. <span id="ncState"></span></p>
     </section>
 
     <section class="card dash-card help-card">
@@ -1245,10 +1259,26 @@ function renderAccount(firstLoad) {
   }
 }
 
+// ---- Noise Cancel extension (Tier 2 / Premium) ----
+// Paste the Chrome Web Store link here once it's published.
+const NOISE_CANCEL_URL = "";
+function renderNoiseCancelHelp() {
+  const get = document.getElementById("ncGet"), state = document.getElementById("ncState");
+  if (!get || !state) return;
+  get.innerHTML = NOISE_CANCEL_URL
+    ? '<a href="' + NOISE_CANCEL_URL + '" target="_blank" rel="noopener">Get it from the Chrome Web Store</a> (free to install).'
+    : 'Coming soon to the Chrome Web Store. For early access, email <a href="mailto:teachpaltl@gmail.com">teachpaltl@gmail.com</a>.';
+  // The extension marks this page so we can show its status.
+  const s = document.documentElement.dataset.tpnc;
+  state.textContent = s === "on" ? "✓ Installed and on." : s === "off" ? "Installed, but switched off in the extension." : s === "locked" ? "Installed. It turns on when you have Tier 2 or Premium blocks." : "";
+}
+renderNoiseCancelHelp();
+new MutationObserver(renderNoiseCancelHelp).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tpnc"] });
+
 // What each block type includes (shown when hovering the "i" on each balance).
 const TIER_INFO = {
   basic: "Basic · ₱12 per block\n• Corrected sentence\n• More natural way to say it\n• Why it's wrong (in English)\nUses the free AI.\nTry it: 3 for ₱36 · Bundles: 10 for ₱115 · 30 for ₱330 · 100 for ₱1,050\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
-  tier2: "Tier 2 · ₱15 per block\nEverything in Basic, plus:\n• Other ways to say it\n• Useful vocabulary\n• Collocations (natural word pairings)\n• Translation for beginners who use their own language\n• More accurate, faster AI\nTry it: 3 for ₱45 · Bundles: 10 for ₱145 · 30 for ₱420 · 100 for ₱1,300\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
+  tier2: "Tier 2 · ₱15 per block\nEverything in Basic, plus:\n• Other ways to say it\n• Useful vocabulary\n• Collocations (natural word pairings)\n• Translation for beginners who use their own language\n• More accurate, faster AI\n• Noise Cancel for your mic (Chrome extension)\nTry it: 3 for ₱45 · Bundles: 10 for ₱145 · 30 for ₱420 · 100 for ₱1,300\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
   premium: "Premium · ₱17 per block\nEverything in Tier 2, plus:\n• Lesson feedback written for you after class\n• PDF lesson summary to save or send\n• Mistake tracker during class\n• Lesson target-phrase tracker\n• Follow-up questions to ask next\n• Highlights of what the student said well\nTry it: 3 for ₱51 · Bundles: 10 for ₱165 · 30 for ₱480 · 100 for ₱1,500\n1 block = up to 30 minutes. Classes under 3 minutes are free.",
 };
 
