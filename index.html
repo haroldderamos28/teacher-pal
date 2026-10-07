@@ -223,6 +223,7 @@
     .tile-value { font-size: 26px; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
     .tile-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .tile.t-tier2 .tile-value { color: var(--teal); } .tile.t-premium .tile-value { color: var(--gold); }
+    .tile.nc-tile .nc-val { font-size: 20px; margin-top: 8px; } .tile.nc-on .nc-val { color: var(--teal); } .tile.nc-tile a { color: var(--teal); font-weight: 700; }
     .dash-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 24px; align-items: start; }
     .dash-card { padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
     .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -541,7 +542,7 @@
       </div>
       <div class="card-title" style="margin-top:8px">Trainers</div>
       <div class="adm-stats" id="admStats"></div>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trainer</th><th>Joined</th><th class="num">Basic</th><th class="num">Tier 2</th><th class="num">Premium</th><th class="num">Used / added</th><th class="num">Min</th><th>Last class</th></tr></thead><tbody id="admTrainers"></tbody></table></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Trainer</th><th>Joined</th><th class="num">Basic</th><th class="num">Tier 2</th><th class="num">Premium</th><th class="num">Used / added</th><th class="num">Min</th><th>Last class</th><th>Noise Cancel</th></tr></thead><tbody id="admTrainers"></tbody></table></div>
       <div class="card-title" style="margin-top:8px" id="admFbkTitle">Feedback</div>
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sent</th><th>Trainer</th><th>Type</th><th>Message</th><th></th></tr></thead><tbody id="admFeedback"></tbody></table></div>
       <div class="card-title" style="margin-top:8px">Recent decisions</div>
@@ -1272,8 +1273,25 @@ function renderNoiseCancelHelp() {
   const s = document.documentElement.dataset.tpnc;
   state.textContent = s === "on" ? "✓ Installed and on." : s === "off" ? "Installed, but switched off in the extension." : s === "locked" ? "Installed. It turns on when you have Tier 2 or Premium blocks." : "";
 }
+// Dashboard tile: is the extension installed and on for this trainer?
+function renderNcTile() {
+  const el = document.getElementById("ncTile");
+  if (!el) return;
+  const s = document.documentElement.dataset.tpnc;
+  const v = s === "on" ? ["On", "Cleaning your mic in classes"] : s === "off" ? ["Off", "Switched off in the extension"]
+    : s === "locked" ? ["Locked", "Comes with Tier 2 and Premium blocks"] : ["Not installed", '<a href="#" data-nc-setup>Set it up →</a>'];
+  el.className = "tile nc-tile" + (s === "on" ? " nc-on" : "");
+  el.innerHTML = `<div class="tile-label">🎧 Noise Cancel</div><div class="tile-value nc-val">${v[0]}</div><div class="tile-sub">${v[1]}</div>`;
+}
+document.addEventListener("click", function (e) {
+  if (!e.target.closest("[data-nc-setup]")) return;
+  e.preventDefault();
+  showTab("help");
+  const sec = document.getElementById("ncHelp");
+  if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 renderNoiseCancelHelp();
-new MutationObserver(renderNoiseCancelHelp).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tpnc"] });
+new MutationObserver(function () { renderNoiseCancelHelp(); renderNcTile(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tpnc"] });
 
 // What each block type includes (shown when hovering the "i" on each balance).
 const TIER_INFO = {
@@ -2974,7 +2992,9 @@ function renderDashboard() {
       const n = b[t] || 0;
       return `<div class="tile t-${t}"><div class="tile-label">${TIER_NAMES[t]} blocks</div><div class="tile-value">${n}</div><div class="tile-sub">${n ? blockTime(n) + " of class time" : "none left"}</div></div>`;
     }).join("") +
-    `<div class="tile"><div class="tile-label">This month</div><div class="tile-value">${paid.length} <span style="font-size:15px">classes</span></div><div class="tile-sub">${blocksMonth} block${blocksMonth === 1 ? "" : "s"} used · ${Math.round(secsMonth / 360) / 10} hrs teaching</div></div>`;
+    `<div class="tile"><div class="tile-label">This month</div><div class="tile-value">${paid.length} <span style="font-size:15px">classes</span></div><div class="tile-sub">${blocksMonth} block${blocksMonth === 1 ? "" : "s"} used · ${Math.round(secsMonth / 360) / 10} hrs teaching</div></div>` +
+    `<div class="tile nc-tile" id="ncTile"></div>`;
+  renderNcTile();
   renderBuy();
   renderHistory(classes);
   renderPurchases();
@@ -3165,6 +3185,14 @@ function trainerStatus(t) {
   if (days !== null && days >= 7) return { cls: "st-quiet", label: "Gone quiet" };
   return { cls: "st-active", label: "Active" };
 }
+// Admin trainers list: has this trainer's Noise Cancel extension checked in, and when was it last used in a call?
+function ncCell(t) {
+  if (!t.nc_seen) return '<span class="muted">—</span>';
+  const mode = { standard: "Standard", strong: "Strong", max: "Max" }[t.nc_mode] || "";
+  const state = t.nc_enabled === false ? "Off" : mode;
+  return (state ? `<span class="pill tier2">${state}</span> ` : "") +
+    (t.nc_used ? "used " + ago(t.nc_used) : '<span class="muted">installed, not used yet</span>');
+}
 function renderAdmin(a) {
   const pend = a.pending || [];
   document.getElementById("admTitle").textContent = "🛠 Admin · " + (pend.length ? pend.length + " payment" + (pend.length > 1 ? "s" : "") + " waiting" : "no payments waiting");
@@ -3175,11 +3203,12 @@ function renderAdmin(a) {
   const st = a.stats || {};
   document.getElementById("admStats").innerHTML = [
     [st.trainers || 0, "Signed up"], [st.active || 0, "Ran a class"], [st.classes_7d || 0, "Classes, 7 days"], [st.blocks_outstanding || 0, "Blocks outstanding"],
+    [st.nc_installed || 0, "Noise Cancel installed"], [st.nc_used_7d || 0, "Used Noise Cancel, 7 days"],
   ].map(function (x) { return `<div class="adm-stat"><b>${x[0]}</b><span>${x[1]}</span></div>`; }).join("");
   document.getElementById("admTrainers").innerHTML = (a.trainers || []).map(function (t) {
     const s = trainerStatus(t);
-    return `<tr><td>${escapeHtml(t.email || "")}<br><span class="pill ${s.cls}">${s.label}</span></td><td>${t.created_at ? fmtDate(t.created_at) : ""}</td><td class="num">${t.basic}</td><td class="num">${t.tier2}</td><td class="num">${t.premium}</td><td class="num">${t.used || 0} / ${t.added || 0}</td><td class="num">${t.minutes || 0}</td><td>${t.last_class ? ago(t.last_class) : '<span class="muted">—</span>'}</td></tr>`;
-  }).join("") || '<tr><td colspan="8" class="empty-row">No trainers yet.</td></tr>';
+    return `<tr><td>${escapeHtml(t.email || "")}<br><span class="pill ${s.cls}">${s.label}</span></td><td>${t.created_at ? fmtDate(t.created_at) : ""}</td><td class="num">${t.basic}</td><td class="num">${t.tier2}</td><td class="num">${t.premium}</td><td class="num">${t.used || 0} / ${t.added || 0}</td><td class="num">${t.minutes || 0}</td><td>${t.last_class ? ago(t.last_class) : '<span class="muted">—</span>'}</td><td>${ncCell(t)}</td></tr>`;
+  }).join("") || '<tr><td colspan="9" class="empty-row">No trainers yet.</td></tr>';
   const fb = a.feedback || [];
   const fbNew = (a.stats && a.stats.feedback_new) || fb.filter(function (f) { return f.status === "new"; }).length;
   document.getElementById("admFbkTitle").textContent = "Feedback" + (fbNew ? " · " + fbNew + " new" : "");
