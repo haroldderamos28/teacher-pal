@@ -200,6 +200,7 @@
     .part { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(27,42,74,0.15); background: #fff; border-radius: 999px; padding: 6px 12px 6px 9px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; user-select: none; }
     .part input { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
     .part:has(input:not(:checked)) { background: transparent; color: var(--muted); border-style: dashed; }
+    .part.locked { opacity: 0.45; cursor: not-allowed; }
     .part:has(input:focus-visible) { outline: 3px solid rgba(62,124,138,0.35); outline-offset: 1px; }
     #results.hide-said .said, #results.hide-corrected .box-corrected, #results.hide-natural .box-natural,
     #results.hide-why .box-why, #results.hide-praise .box-praise,
@@ -534,7 +535,6 @@
           <label class="mini-field">Student pace<select id="defPace"></select></label>
           <label class="mini-field">Support language<select id="defLanguage"></select></label>
           <label class="mini-field">Audio source<select id="defAudio"></select></label>
-          <label class="mini-field check"><input type="checkbox" id="defExtras"> Show extras</label>
         </div>
         <div class="form-row"><button type="button" class="primary-btn" id="defSave" style="flex:0 0 auto">Save defaults</button><span class="msg" id="defMsg" role="status" aria-live="polite"></span></div>
       </section>
@@ -765,7 +765,6 @@
         <span class="field field-wide premium-only"><label><span>Lesson target phrases <span class="premium-badge">PREMIUM</span></span>
           <textarea id="targetPhrases" rows="2" placeholder="One per line, e.g. divide into segments"></textarea>
         </label><span class="info" tabindex="0" role="img" aria-label="Paste the lesson's key expressions, one per line (up to 10). TeachPaL ticks each one off when the student uses it, and suggests where they could have used one." data-tip="Paste the lesson's key expressions, one per line (up to 10). TeachPaL ticks each one off when the student uses it, and suggests where they could have used one.">i</span></span>
-        <span class="field field-wide"><label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives, vocabulary &amp; collocations)</label><span class="info" tabindex="0" role="img" aria-label="Adds other ways to say it, one useful vocabulary word, and natural word pairings (collocations, like 'make a mistake' or 'heavy traffic') to each correction." data-tip="Adds other ways to say it, one useful vocabulary word, and natural word pairings (collocations, like 'make a mistake' or 'heavy traffic') to each correction.">i</span></span>
         <span class="field field-wide"><div class="parts-label" id="partsLabel">Show on cards</div>
           <div class="parts" id="cardParts" role="group" aria-labelledby="partsLabel">
             <label class="part"><input type="checkbox" value="said" checked><span aria-hidden="true">🎧</span>Student said</label>
@@ -776,7 +775,7 @@
             <label class="part"><input type="checkbox" value="ways" checked><span aria-hidden="true">🔁</span>Other ways</label>
             <label class="part"><input type="checkbox" value="words" checked><span aria-hidden="true">📚</span>Words</label>
             <label class="part"><input type="checkbox" value="next" checked><span aria-hidden="true">💭</span>Ask next</label>
-          </div><span class="info" tabindex="0" role="img" aria-label="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Saved on this computer." data-tip="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Saved on this computer.">i</span></span>
+          </div><span class="info" tabindex="0" role="img" aria-label="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways and Words come with Tier 2 and Premium; Well said and Ask next with Premium. Saved on this computer." data-tip="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways and Words come with Tier 2 and Premium; Well said and Ask next with Premium. Saved on this computer.">i</span></span>
       </div>
       <div class="action-bar">
         <button id="startBtn" title="Start listening to the student. Your browser will ask for microphone or tab-sharing permission.">Start Listening</button>
@@ -951,7 +950,13 @@ const results = document.getElementById("results");
 const modeEl = document.getElementById("mode");
 const levelEl = document.getElementById("level");
 const languageEl = document.getElementById("language");
-const extrasEl = document.getElementById("extras");
+// "Other ways" and "Words" in Show on cards decide whether the AI writes those extras
+// (alternatives, vocabulary, collocations). Basic blocks never include them.
+function partOn(name) {
+  const box = document.querySelector('#cardParts input[value="' + name + '"]');
+  return !box || box.checked;
+}
+function wantExtras() { return blockTypeEl.value !== "basic" && (partOn("ways") || partOn("words")); }
 const audioSourceEl = document.getElementById("audioSource");
 const paceEl = document.getElementById("pace");
 const blockTypeEl = document.getElementById("blockType");
@@ -1439,22 +1444,22 @@ function renderClassNote() {
 }
 
 // Basic blocks cover corrections and natural phrasing only, so extras and translation are off.
-let extrasBeforeBasic = extrasEl.checked;
+// In "Show on cards", parts the block doesn't include are greyed out (the trainer's ticks are kept).
+const PART_TIER = { ways: "tier2", words: "tier2", praise: "premium", next: "premium" };
 function applyTierRules() {
-  const basic = blockTypeEl.value === "basic";
-  if (basic && !extrasEl.disabled) extrasBeforeBasic = extrasEl.checked;
-  if (basic) {
-    extrasEl.checked = false;
-    if (languageEl.value !== "en") languageEl.value = "en";
-  } else if (extrasEl.disabled) {
-    extrasEl.checked = extrasBeforeBasic;
-  }
-  document.body.classList.toggle("premium-on", blockTypeEl.value === "premium");
-  extrasEl.disabled = basic;
+  const tier = blockTypeEl.value;
+  const basic = tier === "basic";
+  if (basic && languageEl.value !== "en") languageEl.value = "en";
+  document.body.classList.toggle("premium-on", tier === "premium");
   languageEl.disabled = basic;
-  const note = basic ? "Not included in Basic blocks. Pick Tier 2 or Premium to use this." : "";
-  extrasEl.closest("label").title = note;
-  languageEl.closest("label").title = note;
+  languageEl.closest("label").title = basic ? "Not included in Basic blocks. Pick Tier 2 or Premium to use this." : "";
+  document.querySelectorAll("#cardParts input").forEach(function (box) {
+    const need = PART_TIER[box.value];
+    const locked = (need === "tier2" && basic) || (need === "premium" && tier !== "premium");
+    box.disabled = locked;
+    box.closest("label").classList.toggle("locked", locked);
+    box.closest("label").title = locked ? (need === "premium" ? "Comes with Premium blocks" : "Comes with Tier 2 and Premium blocks") : "";
+  });
 }
 blockTypeEl.addEventListener("change", function () { applyTierRules(); syncTierCards(); });
 
@@ -2382,7 +2387,7 @@ function analyzeSentence(text, opts) {
     mode: modeEl.value,
     level: levelEl.value,
     language: languageEl.value,
-    extras: extrasEl.checked,
+    extras: wantExtras(),
     translate: translating,
     session_id: sessionId,
   };
@@ -3272,7 +3277,6 @@ function fillDefaultsForm(d) {
   document.getElementById("defLanguage").value = d.language || "en";
   document.getElementById("defAudio").value = d.audioSource || audioSourceEl.value;
   document.getElementById("defBlockType").value = d.blockType || blockTypeEl.value;
-  document.getElementById("defExtras").checked = typeof d.extras === "boolean" ? d.extras : extrasEl.checked;
 }
 function applyDefaults(d) {
   fillDefaultsForm(d);
@@ -3282,7 +3286,6 @@ function applyDefaults(d) {
   if (d.pace) paceEl.value = d.pace;
   if (d.audioSource) audioSourceEl.value = d.audioSource;
   if (d.language) languageEl.value = d.language;
-  if (typeof d.extras === "boolean") { extrasEl.checked = d.extras; extrasBeforeBasic = d.extras; }
   const b = (account && account.balances) || {};
   if (d.blockType && (b[d.blockType] || 0) > 0) blockTypeEl.value = d.blockType;
   applyTierRules();
@@ -3294,7 +3297,6 @@ document.getElementById("defSave").addEventListener("click", async function () {
     mode: document.getElementById("defMode").value, level: document.getElementById("defLevel").value,
     pace: document.getElementById("defPace").value, language: document.getElementById("defLanguage").value,
     audioSource: document.getElementById("defAudio").value, blockType: document.getElementById("defBlockType").value,
-    extras: document.getElementById("defExtras").checked,
   };
   msg.className = "msg"; msg.textContent = "Saving…";
   try {
@@ -3483,7 +3485,6 @@ function announceChange(label, value, extra) {
 }
 modeEl.addEventListener("change", function () { announceChange("Mode", optionText(modeEl)); });
 levelEl.addEventListener("change", function () { announceChange("Level", optionText(levelEl), "applies from the student's next sentence (short replies under " + minWordsForLevel() + " words are skipped)"); });
-extrasEl.addEventListener("change", function () { announceChange("Extras", extrasEl.checked ? "on" : "off"); });
 languageEl.addEventListener("change", function () { announceChange("Support language", optionText(languageEl), "reconnecting quietly, nothing is lost"); });
 paceEl.addEventListener("change", function () { announceChange("Student pace", optionText(paceEl), "reconnecting quietly, nothing is lost"); });
 audioSourceEl.addEventListener("change", function () { if (running) switchAudioSource(); });
