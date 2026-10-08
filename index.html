@@ -759,14 +759,6 @@
             <option value="mic">Microphone (practice on your own)</option>
           </select>
         </label><span class="info" tabindex="0" role="img" aria-label="Tab / window audio is for lessons: TeachPaL listens to the lesson tab and automatically skips your own voice (it uses your mic only to notice when you talk; use a headset). When asked, pick the lesson tab and turn on 'Share audio', then allow the microphone. Microphone is for practising on your own: it hears everything you say." data-tip="Tab / window audio is for lessons: TeachPaL listens to the lesson tab and automatically skips your own voice (it uses your mic only to notice when you talk; use a headset). When asked, pick the lesson tab and turn on 'Share audio', then allow the microphone. Microphone is for practising on your own: it hears everything you say.">i</span></span>
-        <span class="field" id="engineField" hidden><label>AI engine
-          <select id="engine">
-            <option value="auto" selected>Match block type</option>
-            <option value="basic">Basic (free AI)</option>
-            <option value="haiku">Haiku</option>
-            <option value="compare">Compare both</option>
-          </select>
-        </label><span class="info" tabindex="0" role="img" aria-label="Admin only. Match block type = what trainers get (Basic blocks use the free AI, Tier 2 and Premium use Haiku). Or force one engine, or Compare both to see both answers on each card." data-tip="Admin only. Match block type = what trainers get (Basic blocks use the free AI, Tier 2 and Premium use Haiku). Or force one engine, or Compare both to see both answers on each card.">i</span></span>
         <span class="field field-wide premium-only"><label><span>Student name <span class="premium-badge">PREMIUM</span></span>
           <input type="text" id="studentName" maxlength="40" placeholder="Optional, e.g. Haru" autocomplete="off">
         </label><span class="info" tabindex="0" role="img" aria-label="Used in the end-of-lesson feedback and the PDF summary. Optional." data-tip="Used in the end-of-lesson feedback and the PDF summary. Optional.">i</span></span>
@@ -961,10 +953,8 @@ const levelEl = document.getElementById("level");
 const languageEl = document.getElementById("language");
 const extrasEl = document.getElementById("extras");
 const audioSourceEl = document.getElementById("audioSource");
-const engineEl = document.getElementById("engine");
 const paceEl = document.getElementById("pace");
 const blockTypeEl = document.getElementById("blockType");
-const engineField = document.getElementById("engineField");
 
 // ---------------------------------------------------------------------------
 // Account: sign-in, block balances, and the class "session" that blocks are charged to.
@@ -1231,7 +1221,6 @@ if (!sb) {
       signedInUserId = null;
       account = null;
       accountBar.hidden = true;
-      engineField.hidden = true;
       document.getElementById("tabs").hidden = true;
       document.getElementById("consentModal").hidden = true;
       document.getElementById("adminCard").hidden = true;
@@ -1303,7 +1292,6 @@ function renderAccount(firstLoad) {
   if (avatar) avatar.textContent = (account.email || "?").charAt(0).toUpperCase();
   renderTierCards();
   accountBar.hidden = false;
-  engineField.hidden = !account.admin;
   applyTierRules();
   renderClassNote();
   if (!running && !TIERS.some(function (t) { return b[t] > 0; })) {
@@ -2369,10 +2357,9 @@ function analyzeSentence(text, opts) {
   // Capture the settings at call time so a dropdown change while this request is still
   // in flight doesn't change how its own result gets rendered.
   const translating = isTranslating();
-  // Trainers get the engine that comes with their block type; the admin can override it.
-  const tierEngine = sessionTier === "basic" ? "basic" : "haiku";
-  const choice = account && account.admin && engineEl.value !== "auto" ? engineEl.value : tierEngine;
-  const engines = choice === "compare" ? ["basic", "haiku"] : [choice];
+  // The AI always matches the block type in use: Basic blocks use the free AI,
+  // Tier 2 and Premium use Haiku.
+  const engine = sessionTier === "basic" ? "basic" : "haiku";
 
   const replacing = opts && opts.replace && opts.replace.isConnected ? opts.replace : null;
   let card;
@@ -2411,28 +2398,10 @@ function analyzeSentence(text, opts) {
     ? `<div class="said typed" title="What was typed in Write your thoughts"><span class="said-label">✍️ You wrote</span>${escapeHtml(text)}</div>`
     : `<div class="said" title="What the voice engine heard the student say"><span class="said-label">🎧 Student said${replacing ? ' <span class="joined" title="The student kept going after a pause, so it was added to this card">· continued</span>' : ""}</span>${escapeHtml(text)}</div>`;
 
-  if (engines.length === 1) {
-    const body = document.createElement("div");
-    body.dataset.translating = translating ? "1" : "0";
-    card.append(body);
-    runAnalysis(body, null, settings, engines[0], premium);
-    return;
-  }
-
-  // Compare: each engine's answer in its own section, with how long each one took,
-  // so you can judge them side by side.
-  for (const engine of engines) {
-    const section = document.createElement("div");
-    section.className = "engine-block";
-    const tag = document.createElement("div");
-    tag.className = "engine-tag";
-    tag.textContent = ENGINE_NAMES[engine];
-    const body = document.createElement("div");
-    body.dataset.translating = translating ? "1" : "0";
-    section.append(tag, body);
-    card.append(section);
-    runAnalysis(body, tag, settings, engine, premium && engine === engines[0]);
-  }
+  const body = document.createElement("div");
+  body.dataset.translating = translating ? "1" : "0";
+  card.append(body);
+  runAnalysis(body, null, settings, engine, premium);
 }
 
 async function runAnalysis(card, tag, settings, engine, record) {
@@ -3517,7 +3486,6 @@ levelEl.addEventListener("change", function () { announceChange("Level", optionT
 extrasEl.addEventListener("change", function () { announceChange("Extras", extrasEl.checked ? "on" : "off"); });
 languageEl.addEventListener("change", function () { announceChange("Support language", optionText(languageEl), "reconnecting quietly, nothing is lost"); });
 paceEl.addEventListener("change", function () { announceChange("Student pace", optionText(paceEl), "reconnecting quietly, nothing is lost"); });
-engineEl.addEventListener("change", function () { announceChange("AI engine", optionText(engineEl)); });
 audioSourceEl.addEventListener("change", function () { if (running) switchAudioSource(); });
 if (studentNameEl) studentNameEl.addEventListener("change", function () { announceChange("Student name", studentNameEl.value.trim() || "(none)", "used in the lesson feedback"); });
 if (targetPhrasesEl) targetPhrasesEl.addEventListener("change", function () { announceChange("Lesson phrases", targetList().length + " phrase" + (targetList().length === 1 ? "" : "s"), "tracked from the student's next sentence"); });
