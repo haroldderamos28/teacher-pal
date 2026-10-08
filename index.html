@@ -6,6 +6,20 @@
   <title>TeachPaL</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+  <script id="themeBoot">
+    // Theme + background photo, applied before the page draws so there's no flash.
+    (function () {
+      var t = "light", photo = "", fade = "";
+      try { t = localStorage.getItem("tp_theme") || "light"; photo = localStorage.getItem("tp_bg_photo") || ""; fade = localStorage.getItem("tp_bg_fade") || ""; } catch (e) {}
+      var dark = t === "dark" || (t === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      if (photo) {
+        document.documentElement.classList.add("has-photo");
+        document.documentElement.style.setProperty("--photo", 'url("' + photo + '")');
+        if (fade) document.documentElement.style.setProperty("--photo-fade", fade);
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: #F7F1E7; --ink: #1B2A4A; --muted: #5B6472; --line: rgba(27,42,74,0.10);
@@ -205,9 +219,12 @@
     #results.hide-said .said, #results.hide-corrected .box-corrected, #results.hide-natural .box-natural,
     #results.hide-why .box-why, #results.hide-praise .box-praise,
     #results.hide-ways [data-grp="ways"], #results.hide-ways [data-panel="ways"],
-    #results.hide-words [data-grp="words"], #results.hide-words [data-panel="words"],
+    #results.hide-vocab [data-grp="vocab"], #results.hide-vocab [data-panel="vocab"],
+    #results.hide-colloc [data-grp="colloc"], #results.hide-colloc [data-panel="colloc"],
     #results.hide-next [data-grp="next"], #results.hide-next [data-panel="next"],
-    #results.hide-ways.hide-words.hide-next .grp-bar { display: none !important; }
+    #results.hide-target [data-grp="target"], #results.hide-target [data-panel="target"],
+    #results.hide-mistakes .mistake-tags,
+    #results.hide-ways.hide-vocab.hide-colloc.hide-next.hide-target .grp-bar { display: none !important; }
     .grp-panel > .box:first-child { margin-top: 8px; }
     #feedbackBtn { background: rgba(201,146,46,0.14); color: #8A5E12; border: 1.5px solid rgba(201,146,46,0.35); padding: 9px 16px; font-size: 13px; }
     .modal { position: fixed; inset: 0; z-index: 60; background: rgba(27,42,74,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -397,6 +414,98 @@
     .auth-msg { margin-top: 14px; font-size: 14px; line-height: 1.45; color: var(--teal); min-height: 1em; }
     .auth-msg.bad { color: #B4452F; }
 
+
+    /* ---------- Your screen: background photo ---------- */
+    html.has-photo body { background: var(--bg) var(--photo) center / cover no-repeat fixed; }
+    html.has-photo body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: rgba(247,241,231, var(--photo-fade, 0.35)); }
+    html.has-photo[data-theme="dark"] body::before { background: rgba(14,18,26, var(--photo-fade, 0.35)); }
+    html.has-photo body { position: relative; z-index: 0; }
+    html.has-photo .topbar { background: rgba(247,241,231,0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    html.has-photo[data-theme="dark"] .topbar { background: rgba(18,22,31,0.82); }
+    html.has-photo .tabs { background: rgba(255,255,255,0.75); }
+    html.has-photo[data-theme="dark"] .tabs { background: rgba(30,37,52,0.85); }
+    .theme-btn { background: rgba(27,42,74,0.07); border: 0; border-radius: 999px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .theme-btn:hover { background: rgba(27,42,74,0.14); }
+    .screen-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .screen-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; min-width: 92px; }
+    .bg-preview { width: 120px; height: 68px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg) center / cover no-repeat; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); }
+    .screen-row input[type=range] { width: 160px; accent-color: var(--teal); }
+
+    /* ---------- Dark mode ---------- */
+    html[data-theme="dark"] { color-scheme: dark;
+      --bg: #12161F; --ink: #E6E9EF; --muted: #9AA3B2; --line: rgba(255,255,255,0.10);
+      --teal: #6FB3C1; --coral: #E8876A; --gold: #D6A24A; --card: #1B2130; --shadow: 0 1px 2px rgba(0,0,0,0.4);
+      --surface: #232B3B; --surface-hover: #2B3446; }
+    html[data-theme="dark"] .topbar { border-bottom-color: rgba(255,255,255,0.08); }
+    html[data-theme="dark"] .brand img { background: #F7F1E7; border-radius: 12px; padding: 3px 8px; }
+    html[data-theme="dark"] .theme-btn, html[data-theme="dark"] .chip, html[data-theme="dark"] .tabs,
+    html[data-theme="dark"] .pill, html[data-theme="dark"] .target, html[data-theme="dark"] .engine-tag,
+    html[data-theme="dark"] .guard-pill, html[data-theme="dark"] .class-note.paused { background: rgba(255,255,255,0.07); }
+    html[data-theme="dark"] .theme-btn:hover { background: rgba(255,255,255,0.14); }
+    html[data-theme="dark"] .chip-basic, html[data-theme="dark"] .pill.basic, html[data-theme="dark"] .tier-card.t-basic .tier-name { color: #C3C9D3; }
+    html[data-theme="dark"] .chip-tier2, html[data-theme="dark"] .pill.tier2, html[data-theme="dark"] .class-note,
+    html[data-theme="dark"] .compose-head .tier-tag, html[data-theme="dark"] .target.used, html[data-theme="dark"] .save-tag,
+    html[data-theme="dark"] .msg.ok, html[data-theme="dark"] .pw-rules li.ok, html[data-theme="dark"] .pill.idea,
+    html[data-theme="dark"] .pill.st-active, html[data-theme="dark"] .pill.approved, html[data-theme="dark"] .said.typed { color: #8FD0DC; }
+    html[data-theme="dark"] .chip-premium, html[data-theme="dark"] .pill.premium, html[data-theme="dark"] .premium-badge,
+    html[data-theme="dark"] .guard-pill.on, html[data-theme="dark"] #feedbackBtn, html[data-theme="dark"] .pill.pending,
+    html[data-theme="dark"] .pill.st-quiet { color: #E9C27A; }
+    html[data-theme="dark"] .tally, html[data-theme="dark"] .mistake-tags, html[data-theme="dark"] .class-note.warn,
+    html[data-theme="dark"] .guard-pill.off, html[data-theme="dark"] .pill.problem, html[data-theme="dark"] .pill.st-never { color: #F2A488; }
+    html[data-theme="dark"] #stopBtn, html[data-theme="dark"] .sm-btn.reject, html[data-theme="dark"] .msg.bad,
+    html[data-theme="dark"] .auth-msg.bad, html[data-theme="dark"] .pill.st-low, html[data-theme="dark"] .pill.rejected { color: #F08A75; }
+    /* White surfaces */
+    html[data-theme="dark"] select, html[data-theme="dark"] .tier-card, html[data-theme="dark"] .copy-btn,
+    html[data-theme="dark"] .field input[type=text], html[data-theme="dark"] .field textarea, html[data-theme="dark"] .compose textarea,
+    html[data-theme="dark"] .grp-chip, html[data-theme="dark"] .part, html[data-theme="dark"] .modal-card,
+    html[data-theme="dark"] .tab[aria-selected="true"], html[data-theme="dark"] .tile, html[data-theme="dark"] .seg button,
+    html[data-theme="dark"] .bundle, html[data-theme="dark"] .qr-zoom-card, html[data-theme="dark"] .text-input,
+    html[data-theme="dark"] .sm-btn, html[data-theme="dark"] .auth-card, html[data-theme="dark"] .google-btn {
+      background: var(--surface); color: var(--ink); border-color: rgba(255,255,255,0.12); }
+    html[data-theme="dark"] .copy-btn:hover, html[data-theme="dark"] .grp-chip:hover, html[data-theme="dark"] .ghost-btn:hover,
+    html[data-theme="dark"] .google-btn:hover { background: var(--surface-hover); }
+    html[data-theme="dark"] .grp-chip[aria-expanded="true"] { background: var(--ink); color: #12161F; border-color: var(--ink); }
+    html[data-theme="dark"] .grp-chip.all, html[data-theme="dark"] .part:has(input:not(:checked)) { background: transparent; }
+    html[data-theme="dark"] .sm-btn.approve, html[data-theme="dark"] .copy-btn.copied { background: var(--teal); color: #10161E; border-color: var(--teal); }
+    html[data-theme="dark"] select:disabled, html[data-theme="dark"] .compose textarea:disabled { background: #1A1F2B; }
+    html[data-theme="dark"] #pauseBtn, html[data-theme="dark"] .settings-toggle, html[data-theme="dark"] #clearBtn,
+    html[data-theme="dark"] .ghost-btn { border-color: rgba(255,255,255,0.22); }
+    html[data-theme="dark"] .qr-wrap { background: #fff; }
+    /* Cream surfaces */
+    html[data-theme="dark"] .correction-card, html[data-theme="dark"] .compose, html[data-theme="dark"] .pay-box { background: #171C28; }
+    html[data-theme="dark"] .premium-bar { background: #1E1F24; }
+    html[data-theme="dark"] .said { background: #222838; color: #C9CFDA; border-left-color: #4A5468; }
+    html[data-theme="dark"] .said.typed { border-left-color: #4F8E9B; }
+    html[data-theme="dark"] .help-grid > div, html[data-theme="dark"] .adm-stat { background: rgba(255,255,255,0.04); }
+    html[data-theme="dark"] .modal-text { color: #C3C9D3; }
+    html[data-theme="dark"] .interim, html[data-theme="dark"] .empty, html[data-theme="dark"] .thinking, html[data-theme="dark"] .empty-row { color: #7C8596; }
+    html[data-theme="dark"] .info { background: rgba(255,255,255,0.12); }
+    html[data-theme="dark"] .info:hover, html[data-theme="dark"] .info:focus { background: var(--ink); color: #12161F; }
+    html[data-theme="dark"] .toast { background: #E6E9EF; color: #12161F; }
+    html[data-theme="dark"] .splitter::before { background: rgba(255,255,255,0.18); }
+    html[data-theme="dark"] .iab-banner { background: #2A2416; }
+    html[data-theme="dark"] .consent-item:has(input:checked) { background: #1B2A2A; border-color: #2F5A5A; }
+    /* Correction boxes: same color families, deep and readable */
+    html[data-theme="dark"] .box-corrected { background: #183029; border-color: #275244; }
+    html[data-theme="dark"] .box-translation { background: #262238; border-color: #3E3760; }
+    html[data-theme="dark"] .box-natural { background: #182837; border-color: #29445C; }
+    html[data-theme="dark"] .box-why { background: #2D2618; border-color: #574628; }
+    html[data-theme="dark"] .box-alt { background: #1F2236; border-color: #363B5E; }
+    html[data-theme="dark"] .box-vocab { background: #172E2A; border-color: #275047; }
+    html[data-theme="dark"] .box-colloc { background: #2F201A; border-color: #5A3829; }
+    html[data-theme="dark"] .box-praise { background: #2E2814; border-color: #5C4E22; }
+    html[data-theme="dark"] .box-followup { background: #19253A; border-color: #2C4163; }
+    html[data-theme="dark"] .box-target { background: #172B2E; border-color: #284B50; }
+    html[data-theme="dark"] .box-text, html[data-theme="dark"] .box-why .box-text { color: var(--ink); }
+    html[data-theme="dark"] .box-alt .box-text { color: #C5CBF2; }
+    html[data-theme="dark"] .box-vocab .box-text, html[data-theme="dark"] .box-target .box-text { color: #9ED8CB; }
+    html[data-theme="dark"] .box-colloc .box-text { color: #F2B39A; }
+    html[data-theme="dark"] .box-praise .box-text { color: #EDD38E; }
+    html[data-theme="dark"] .box-followup .box-text { color: #AFC6EC; }
+    html[data-theme="dark"] .error, html[data-theme="dark"] .notice.warn { background: #33201B; color: #F2B39A; border-color: #5A3829; }
+    html[data-theme="dark"] .notice.ok { background: #183029; color: #9ED8CB; border-color: #275244; }
+
     /* Narrow windows (e.g. TeachPaL next to the lesson tab): tighter spacing and text. */
     @media (max-width: 1000px) {
       .container { padding: 16px; gap: 16px; }
@@ -483,7 +592,7 @@
     </nav>
     <div class="account-bar" id="accountBar" hidden>
       <span id="balanceChips"></span>
-      <span class="account-right"><span class="avatar" id="avatar" aria-hidden="true"></span><span id="accountEmail"></span><button type="button" class="link-btn" id="signOutBtn">Sign out</button></span>
+      <span class="account-right"><button type="button" class="theme-btn" id="themeBtn" title="Switch light / dark" aria-label="Switch light or dark mode">🌙</button><span class="avatar" id="avatar" aria-hidden="true"></span><span id="accountEmail"></span><button type="button" class="link-btn" id="signOutBtn">Sign out</button></span>
     </div>
   </header>
 
@@ -537,6 +646,26 @@
           <label class="mini-field">Audio source<select id="defAudio"></select></label>
         </div>
         <div class="form-row"><button type="button" class="primary-btn" id="defSave" style="flex:0 0 auto">Save defaults</button><span class="msg" id="defMsg" role="status" aria-live="polite"></span></div>
+      </section>
+      <section class="card dash-card" id="screenCard" aria-labelledby="scrTitle">
+        <div class="card-head"><div class="card-title" id="scrTitle">🎨 Your screen</div></div>
+        <div class="card-note">Make TeachPaL yours. Saved on this computer only; your photo never leaves it.</div>
+        <div class="screen-row"><span class="screen-label">Theme</span>
+          <div class="seg" id="themeSeg" role="group" aria-label="Theme">
+            <button type="button" data-theme-pick="light" aria-pressed="false">☀️ Light</button>
+            <button type="button" data-theme-pick="dark" aria-pressed="false">🌙 Dark</button>
+            <button type="button" data-theme-pick="auto" aria-pressed="false">💻 Match my computer</button>
+          </div>
+        </div>
+        <div class="screen-row"><span class="screen-label">Background</span>
+          <div class="bg-preview" id="bgPreview">No photo</div>
+          <label class="ghost-btn" style="padding:9px 14px;font-size:13px;cursor:pointer">📷 Upload photo<input type="file" id="bgFile" accept="image/*" hidden></label>
+          <button type="button" class="link-btn" id="bgRemove" hidden>Remove</button>
+        </div>
+        <div class="screen-row" id="bgFadeRow" hidden><span class="screen-label">Photo</span>
+          <span class="card-note" style="font-size:12px">Bright</span><input type="range" id="bgFade" min="0" max="80" step="5" value="35" aria-label="How much the photo is faded"><span class="card-note" style="font-size:12px">Soft</span>
+        </div>
+        <div class="msg" id="bgMsg" role="status" aria-live="polite"></div>
       </section>
     </div>
 
@@ -636,7 +765,8 @@
         <li><b>One turn, one card:</b> TeachPaL waits a moment after the student stops, so a whole answer becomes one card. If they pause and then carry on, the new words join the same card (marked <i>continued</i>). When you start talking, the student's turn is sent right away.</li>
         <li><b>Reading back?</b> The list stays where you scrolled while new sentences come in. A <i>↑ New corrections</i> button appears to jump to the latest.</li>
         <li><b>Copy</b> buttons on each card let you paste a correction into your class chat.</li>
-        <li><b>Short cards:</b> every card shows what the student said, the correction, a more natural way to say it and a quick explanation. Tap <i>🔁 Other ways</i>, <i>📚 Words</i> or <i>💭 Ask next</i> to see more. Tabs you leave open stay open on the next cards. Don't need some of them? Untick them under <i>Show on cards</i> in the class settings.</li>
+        <li><b>Short cards:</b> every card shows what the student said, the correction, a more natural way to say it and a quick explanation. Tap <i>🔁 Other ways</i>, <i>📚 Vocabulary</i>, <i>🔗 Collocations</i> or <i>💭 Ask next</i> to see more. Tabs you leave open stay open on the next cards. Don't need some of them? Untick them under <i>Show on cards</i> in the class settings.</li>
+        <li><b>Your screen:</b> switch to dark mode with the 🌙 button at the top, or set a background photo under <i>🎨 Your screen</i> on the Dashboard.</li>
         <li><b>Save your defaults</b> on the Dashboard so every class starts with your usual Mode, Level and language.</li>
         <li><b>Teaching someone?</b> Let your student know an AI helper is listening. TeachPaL doesn't record audio or save transcripts.</li>
       </ul>
@@ -771,11 +901,14 @@
             <label class="part"><input type="checkbox" value="corrected" checked><span aria-hidden="true">✅</span>Correction</label>
             <label class="part"><input type="checkbox" value="natural" checked><span aria-hidden="true">💬</span>More natural</label>
             <label class="part"><input type="checkbox" value="why" checked><span aria-hidden="true">💡</span>Quick explanation</label>
-            <label class="part"><input type="checkbox" value="praise" checked><span aria-hidden="true">⭐</span>Well said</label>
             <label class="part"><input type="checkbox" value="ways" checked><span aria-hidden="true">🔁</span>Other ways</label>
-            <label class="part"><input type="checkbox" value="words" checked><span aria-hidden="true">📚</span>Words</label>
+            <label class="part"><input type="checkbox" value="vocab" checked><span aria-hidden="true">📚</span>Vocabulary</label>
+            <label class="part"><input type="checkbox" value="colloc" checked><span aria-hidden="true">🔗</span>Collocations</label>
+            <label class="part"><input type="checkbox" value="praise" checked><span aria-hidden="true">⭐</span>Well said</label>
             <label class="part"><input type="checkbox" value="next" checked><span aria-hidden="true">💭</span>Ask next</label>
-          </div><span class="info" tabindex="0" role="img" aria-label="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways and Words come with Tier 2 and Premium; Well said and Ask next with Premium. Saved on this computer." data-tip="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways and Words come with Tier 2 and Premium; Well said and Ask next with Premium. Saved on this computer.">i</span></span>
+            <label class="part"><input type="checkbox" value="target" checked><span aria-hidden="true">🎯</span>Lesson phrase</label>
+            <label class="part"><input type="checkbox" value="mistakes" checked><span aria-hidden="true">📊</span>Mistake types</label>
+          </div><span class="info" tabindex="0" role="img" aria-label="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways, Vocabulary and Collocations come with Tier 2 and Premium; Well said, Ask next, Lesson phrase and Mistake types with Premium. Saved on this computer." data-tip="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Other ways, Vocabulary and Collocations come with Tier 2 and Premium; Well said, Ask next, Lesson phrase and Mistake types with Premium. Saved on this computer.">i</span></span>
       </div>
       <div class="action-bar">
         <button id="startBtn" title="Start listening to the student. Your browser will ask for microphone or tab-sharing permission.">Start Listening</button>
@@ -950,13 +1083,13 @@ const results = document.getElementById("results");
 const modeEl = document.getElementById("mode");
 const levelEl = document.getElementById("level");
 const languageEl = document.getElementById("language");
-// "Other ways" and "Words" in Show on cards decide whether the AI writes those extras
+// "Other ways", "Vocabulary" and "Collocations" in Show on cards decide whether the AI writes those extras
 // (alternatives, vocabulary, collocations). Basic blocks never include them.
 function partOn(name) {
   const box = document.querySelector('#cardParts input[value="' + name + '"]');
   return !box || box.checked;
 }
-function wantExtras() { return blockTypeEl.value !== "basic" && (partOn("ways") || partOn("words")); }
+function wantExtras() { return blockTypeEl.value !== "basic" && (partOn("ways") || partOn("vocab") || partOn("colloc")); }
 const audioSourceEl = document.getElementById("audioSource");
 const paceEl = document.getElementById("pace");
 const blockTypeEl = document.getElementById("blockType");
@@ -1445,7 +1578,7 @@ function renderClassNote() {
 
 // Basic blocks cover corrections and natural phrasing only, so extras and translation are off.
 // In "Show on cards", parts the block doesn't include are greyed out (the trainer's ticks are kept).
-const PART_TIER = { ways: "tier2", words: "tier2", praise: "premium", next: "premium" };
+const PART_TIER = { ways: "tier2", vocab: "tier2", colloc: "tier2", praise: "premium", next: "premium", target: "premium", mistakes: "premium" };
 function applyTierRules() {
   const tier = blockTypeEl.value;
   const basic = tier === "basic";
@@ -2502,10 +2635,10 @@ function renderCorrection(card, generated) {
   // stays short; tabs the trainer opens stay open on the next cards too.
   const groups = [
     { id: "ways", icon: "🔁", label: "Other ways", n: altList.length, html: altList.length ? correctionBox("alt", "Other ways to say it", altList.join(" • "), altList.join("\n")) : "" },
-    { id: "words", icon: "📚", label: "Words", n: (vocab ? 1 : 0) + colList.length,
-      html: (vocab ? correctionBox("vocab", "Vocabulary", vocab) : "") + (colList.length ? correctionBox("colloc", "Collocations", colList.join(" • "), colList.join("\n")) : "") },
-    { id: "next", icon: "💭", label: "Ask next", n: followList.length,
-      html: (targetTip ? correctionBox("target", "Lesson phrase", targetTip) : "") + (followList.length ? correctionBox("followup", "Ask next", followList.join(" • "), followList.join("\n")) : "") },
+    { id: "vocab", icon: "📚", label: "Vocabulary", n: 0, html: vocab ? correctionBox("vocab", "Vocabulary", vocab) : "" },
+    { id: "colloc", icon: "🔗", label: "Collocations", n: colList.length, html: colList.length ? correctionBox("colloc", "Collocations", colList.join(" • "), colList.join("\n")) : "" },
+    { id: "next", icon: "💭", label: "Ask next", n: followList.length, html: followList.length ? correctionBox("followup", "Ask next", followList.join(" • "), followList.join("\n")) : "" },
+    { id: "target", icon: "🎯", label: "Lesson phrase", n: 0, html: targetTip ? correctionBox("target", "Lesson phrase", targetTip) : "" },
   ].filter(function (g) { return g.html; });
 
   if (card.dataset.open === undefined) card.dataset.open = openGroupsPref().join(",");
@@ -2531,7 +2664,10 @@ function renderCorrection(card, generated) {
 // Which tabs open by themselves on new cards (the ones the trainer last left open).
 const GROUPS_KEY = "tp_open_groups";
 function openGroupsPref() {
-  try { const v = localStorage.getItem(GROUPS_KEY); return v ? v.split(",").filter(Boolean) : []; } catch { return []; }
+  let v = [];
+  try { v = (localStorage.getItem(GROUPS_KEY) || "").split(",").filter(Boolean); } catch {}
+  if (v.indexOf("words") !== -1) v = v.concat(["vocab", "colloc"]); // older "Words" tab
+  return v;
 }
 function saveOpenGroupsPref(list) {
   try { localStorage.setItem(GROUPS_KEY, list.join(",")); } catch {}
@@ -2572,6 +2708,7 @@ function applyCardParts() {
 (function loadCardParts() {
   let hidden = [];
   try { hidden = (localStorage.getItem(PARTS_KEY) || "").split(",").filter(Boolean); } catch {}
+  if (hidden.indexOf("words") !== -1) hidden = hidden.concat(["vocab", "colloc"]); // older "Words" tick
   partBoxes.forEach(function (b) { b.checked = hidden.indexOf(b.value) === -1; });
   if (!partBoxes.some(function (b) { return b.checked; })) partBoxes.forEach(function (b) { b.checked = true; });
   applyCardParts();
@@ -2584,6 +2721,90 @@ partBoxes.forEach(function (box) {
     try { localStorage.setItem(PARTS_KEY, hidden.join(",")); } catch {}
   });
 });
+
+// ---- Your screen: light / dark / match computer, and a background photo ----
+const THEME_KEY = "tp_theme", PHOTO_KEY = "tp_bg_photo", FADE_KEY = "tp_bg_fade";
+const darkQuery = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+function themePref() { try { return localStorage.getItem(THEME_KEY) || "light"; } catch { return "light"; } }
+function applyTheme(pref) {
+  const dark = pref === "dark" || (pref === "auto" && darkQuery && darkQuery.matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelectorAll("#themeSeg button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.themePick === pref); });
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.textContent = dark ? "☀️" : "🌙";
+}
+function setTheme(pref) {
+  try { localStorage.setItem(THEME_KEY, pref); } catch {}
+  applyTheme(pref);
+}
+document.querySelectorAll("#themeSeg button").forEach(function (b) { b.addEventListener("click", function () { setTheme(b.dataset.themePick); }); });
+document.getElementById("themeBtn").addEventListener("click", function () {
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+});
+if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener("change", function () { if (themePref() === "auto") applyTheme("auto"); });
+applyTheme(themePref());
+
+function applyPhoto(dataUrl, fade) {
+  const root = document.documentElement;
+  root.classList.toggle("has-photo", !!dataUrl);
+  if (dataUrl) root.style.setProperty("--photo", 'url("' + dataUrl + '")'); else root.style.removeProperty("--photo");
+  root.style.setProperty("--photo-fade", String(fade));
+  const prev = document.getElementById("bgPreview");
+  prev.style.backgroundImage = dataUrl ? 'url("' + dataUrl + '")' : "";
+  prev.textContent = dataUrl ? "" : "No photo";
+  document.getElementById("bgRemove").hidden = !dataUrl;
+  document.getElementById("bgFadeRow").hidden = !dataUrl;
+  document.getElementById("bgFade").value = Math.round(fade * 100);
+}
+function savedPhoto() {
+  let photo = "", fade = 0.35;
+  try { photo = localStorage.getItem(PHOTO_KEY) || ""; const f = parseFloat(localStorage.getItem(FADE_KEY)); if (!isNaN(f)) fade = f; } catch {}
+  return { photo: photo, fade: fade };
+}
+// Big phone photos are shrunk to screen size first, so they load fast and fit in the browser's storage.
+function shrinkPhoto(file) {
+  return new Promise(function (resolve, reject) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      const scale = Math.min(1, 1920 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      let q = 0.82, out = c.toDataURL("image/jpeg", q);
+      while (out.length > 1500000 && q > 0.4) { q -= 0.12; out = c.toDataURL("image/jpeg", q); }
+      resolve(out);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("That file isn't a photo we can open. Try a JPG or PNG.")); };
+    img.src = url;
+  });
+}
+document.getElementById("bgFile").addEventListener("change", async function (e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const msg = document.getElementById("bgMsg");
+  msg.className = "msg"; msg.textContent = "Adding your photo…";
+  try {
+    const data = await shrinkPhoto(file);
+    const fade = savedPhoto().fade;
+    try { localStorage.setItem(PHOTO_KEY, data); } catch { throw new Error("That photo is too big to save. Try a smaller one."); }
+    applyPhoto(data, fade);
+    msg.classList.add("ok"); msg.textContent = "✓ Looks great. Use the slider if the photo feels too busy.";
+  } catch (error) { msg.classList.add("bad"); msg.textContent = error.message; }
+});
+document.getElementById("bgRemove").addEventListener("click", function () {
+  try { localStorage.removeItem(PHOTO_KEY); } catch {}
+  applyPhoto("", savedPhoto().fade);
+  const msg = document.getElementById("bgMsg"); msg.className = "msg"; msg.textContent = "";
+});
+document.getElementById("bgFade").addEventListener("input", function (e) {
+  const fade = Number(e.target.value) / 100;
+  document.documentElement.style.setProperty("--photo-fade", String(fade));
+  try { localStorage.setItem(FADE_KEY, String(fade)); } catch {}
+});
+(function () { const p = savedPhoto(); applyPhoto(p.photo, p.fade); })();
 
 // One colored box per part of a correction, each with its own Copy button.
 const BOX_ICONS = { corrected: "✅", translation: "🌐", natural: "💬", why: "💡", alt: "🔁", vocab: "📚", colloc: "🔗", praise: "⭐", target: "🎯", followup: "💭" };
