@@ -132,7 +132,10 @@
     .compose button { padding: 11px 16px; border-radius: 12px; }
     .compose-note { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; justify-content: space-between; gap: 8px; }
     .said.typed { color: #2F6672; }
-    .said { font-size: 13px; color: var(--muted); font-style: italic; margin: 0 4px 10px; line-height: 1.45; }
+    .said { font-size: 15px; color: #4A5260; margin: 0 0 10px; line-height: 1.45; padding: 9px 14px; border-left: 3px solid #C9CED6; background: #F6F3EE; border-radius: 0 12px 12px 0; }
+    .said.typed { border-left-color: #8FC4CF; }
+    .said-label .joined { color: var(--teal); text-transform: none; letter-spacing: 0; font-weight: 700; }
+    .said-label { display: block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
     .box { position: relative; border: 1px solid; border-radius: 14px; padding: 11px 14px 12px; margin-top: 8px; }
     .box:first-child { margin-top: 0; }
     .box-head { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; padding-right: 84px; min-height: 24px; }
@@ -181,6 +184,30 @@
     .box-followup .box-text { font-size: 14px; color: #24406B; }
     .box-target { background: #EDF5F6; border-color: #C5DFE3; }
     .box-target .box-text { font-size: 14px; color: #2F6672; }
+    /* Extras folded into tabs so each card stays short */
+    .grp-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .grp-chip { border: 1px solid rgba(27,42,74,0.14); background: #fff; color: var(--ink); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+    .grp-chip:hover { background: #F7F4EF; }
+    .grp-chip:focus-visible { outline: 3px solid rgba(62,124,138,0.35); outline-offset: 1px; }
+    .grp-chip .n { background: rgba(27,42,74,0.08); border-radius: 999px; padding: 0 6px; font-size: 11px; }
+    .grp-chip[aria-expanded="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .grp-chip[aria-expanded="true"] .n { background: rgba(255,255,255,0.2); }
+    .grp-chip.all { background: transparent; border-style: dashed; color: var(--muted); }
+    .grp-panel[hidden] { display: none; }
+    /* "Show on cards" checklist */
+    .parts-label { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+    .parts { display: flex; flex-wrap: wrap; gap: 6px; padding-right: 22px; }
+    .part { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(27,42,74,0.15); background: #fff; border-radius: 999px; padding: 6px 12px 6px 9px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; user-select: none; }
+    .part input { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
+    .part:has(input:not(:checked)) { background: transparent; color: var(--muted); border-style: dashed; }
+    .part:has(input:focus-visible) { outline: 3px solid rgba(62,124,138,0.35); outline-offset: 1px; }
+    #results.hide-said .said, #results.hide-corrected .box-corrected, #results.hide-natural .box-natural,
+    #results.hide-why .box-why, #results.hide-praise .box-praise,
+    #results.hide-ways [data-grp="ways"], #results.hide-ways [data-panel="ways"],
+    #results.hide-words [data-grp="words"], #results.hide-words [data-panel="words"],
+    #results.hide-next [data-grp="next"], #results.hide-next [data-panel="next"],
+    #results.hide-ways.hide-words.hide-next .grp-bar { display: none !important; }
+    .grp-panel > .box:first-child { margin-top: 8px; }
     #feedbackBtn { background: rgba(201,146,46,0.14); color: #8A5E12; border: 1.5px solid rgba(201,146,46,0.35); padding: 9px 16px; font-size: 13px; }
     .modal { position: fixed; inset: 0; z-index: 60; background: rgba(27,42,74,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
     .modal-card { width: 100%; max-width: 640px; max-height: calc(100vh - 32px); overflow: auto; background: #fff; border-radius: 24px; padding: 24px 26px; box-shadow: 0 20px 60px rgba(27,42,74,0.3); }
@@ -606,8 +633,10 @@
       <ul class="help-list">
         <li><b>Write your thoughts</b> (Tier 2 and Premium): type a sentence or short paragraph, press send, and get it refined. Handy for speaking-test prep and when you'd rather type than talk.</li>
         <li><b>Your voice is skipped automatically</b> with tab audio: TeachPaL uses your mic only to notice when you're talking, and ignores the lesson audio while you speak, so your own sentences (or their echo from the student's side) don't get corrected. Allow the microphone when asked, and use a headset.</li>
+        <li><b>One turn, one card:</b> TeachPaL waits a moment after the student stops, so a whole answer becomes one card. If they pause and then carry on, the new words join the same card (marked <i>continued</i>). When you start talking, the student's turn is sent right away.</li>
         <li><b>Reading back?</b> The list stays where you scrolled while new sentences come in. A <i>↑ New corrections</i> button appears to jump to the latest.</li>
         <li><b>Copy</b> buttons on each card let you paste a correction into your class chat.</li>
+        <li><b>Short cards:</b> every card shows what the student said, the correction, a more natural way to say it and a quick explanation. Tap <i>🔁 Other ways</i>, <i>📚 Words</i> or <i>💭 Ask next</i> to see more. Tabs you leave open stay open on the next cards. Don't need some of them? Untick them under <i>Show on cards</i> in the class settings.</li>
         <li><b>Save your defaults</b> on the Dashboard so every class starts with your usual Mode, Level and language.</li>
         <li><b>Teaching someone?</b> Let your student know an AI helper is listening. TeachPaL doesn't record audio or save transcripts.</li>
       </ul>
@@ -678,7 +707,7 @@
             <option value="intermediate" selected>Intermediate</option>
             <option value="advanced">Advanced</option>
           </select>
-        </label><span class="info" tabindex="0" role="img" aria-label="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. (Translation mode corrects everything.)" data-tip="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. (Translation mode corrects everything.)">i</span></span>
+        </label><span class="info" tabindex="0" role="img" aria-label="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. A short add-on right after the student's last sentence isn't skipped: it joins that card. (Translation mode corrects everything.)" data-tip="The student's English level. Suggestions and vocabulary are kept at this level. It also sets which short replies are skipped: under 4 words for Basic, 6 for Intermediate, 8 for Advanced. A short add-on right after the student's last sentence isn't skipped: it joins that card. (Translation mode corrects everything.)">i</span></span>
         <span class="field"><label>Support language
           <select id="language">
             <option value="en" selected>English</option>
@@ -745,6 +774,17 @@
           <textarea id="targetPhrases" rows="2" placeholder="One per line, e.g. divide into segments"></textarea>
         </label><span class="info" tabindex="0" role="img" aria-label="Paste the lesson's key expressions, one per line (up to 10). TeachPaL ticks each one off when the student uses it, and suggests where they could have used one." data-tip="Paste the lesson's key expressions, one per line (up to 10). TeachPaL ticks each one off when the student uses it, and suggests where they could have used one.">i</span></span>
         <span class="field field-wide"><label class="check"><input type="checkbox" id="extras" checked> Show extras (alternatives, vocabulary &amp; collocations)</label><span class="info" tabindex="0" role="img" aria-label="Adds other ways to say it, one useful vocabulary word, and natural word pairings (collocations, like 'make a mistake' or 'heavy traffic') to each correction." data-tip="Adds other ways to say it, one useful vocabulary word, and natural word pairings (collocations, like 'make a mistake' or 'heavy traffic') to each correction.">i</span></span>
+        <span class="field field-wide"><div class="parts-label" id="partsLabel">Show on cards</div>
+          <div class="parts" id="cardParts" role="group" aria-labelledby="partsLabel">
+            <label class="part"><input type="checkbox" value="said" checked><span aria-hidden="true">🎧</span>Student said</label>
+            <label class="part"><input type="checkbox" value="corrected" checked><span aria-hidden="true">✅</span>Correction</label>
+            <label class="part"><input type="checkbox" value="natural" checked><span aria-hidden="true">💬</span>More natural</label>
+            <label class="part"><input type="checkbox" value="why" checked><span aria-hidden="true">💡</span>Quick explanation</label>
+            <label class="part"><input type="checkbox" value="praise" checked><span aria-hidden="true">⭐</span>Well said</label>
+            <label class="part"><input type="checkbox" value="ways" checked><span aria-hidden="true">🔁</span>Other ways</label>
+            <label class="part"><input type="checkbox" value="words" checked><span aria-hidden="true">📚</span>Words</label>
+            <label class="part"><input type="checkbox" value="next" checked><span aria-hidden="true">💭</span>Ask next</label>
+          </div><span class="info" tabindex="0" role="img" aria-label="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Saved on this computer." data-tip="Untick anything you don't need, and it disappears from every card, even the ones already on screen. Tick it again to bring it back. Saved on this computer.">i</span></span>
       </div>
       <div class="action-bar">
         <button id="startBtn" title="Start listening to the student. Your browser will ask for microphone or tab-sharing permission.">Start Listening</button>
@@ -864,11 +904,22 @@ const TARGET_RATE = 16000; // audio is sent to Soniox as 16 kHz mono 16-bit PCM
 // "Student pace" presets. delay/sensitivity go to Soniox (its pause limit is 3 s); extraHold
 // is extra waiting the page adds on top for slow speakers, cancelled if they keep talking;
 // longTalk = if a student talks this long without ever pausing, send what's finished.
+// settle = after the voice engine says "they stopped", we always wait this much more, so
+// sending feels the same every time (the engine's own guess varies a lot).
+// joinGap = if the student starts talking again this soon after a card was sent (and the
+// teacher didn't talk in between), the new words join that card instead of making a new one.
 const PACES = {
-  slow:   { delay: 3000, sensitivity: -0.6, extraHold: 1200, longTalk: 120 },
-  normal: { delay: 2500, sensitivity: -0.3, extraHold: 0,    longTalk: 100 },
-  fast:   { delay: 1500, sensitivity: 0,    extraHold: 0,    longTalk: 60 },
+  slow:   { delay: 3000, sensitivity: -0.6, extraHold: 1200, longTalk: 120, settle: 1800, joinGap: 6000 },
+  normal: { delay: 2500, sensitivity: -0.3, extraHold: 0,    longTalk: 100, settle: 1200, joinGap: 5000 },
+  fast:   { delay: 1500, sensitivity: 0,    extraHold: 0,    longTalk: 60,  settle: 700,  joinGap: 3500 },
 };
+// One student turn = one card. These track the last spoken card so a mid-thought pause
+// doesn't split the turn, and when the teacher last spoke (which really ends a turn).
+let lastSpoken = null;   // { card, text, sentAt, translating }
+let turnStartAt = 0;     // when the words now being collected started arriving
+let teacherSpokeAt = 0;  // last time the teacher talked for more than a moment (tab audio)
+let guardTurnTimer = null;
+const TEACHER_TURN_MS = 700; // shorter than this is just "mm-hm", not the teacher taking a turn
 function currentPace() { return PACES[paceEl.value] || PACES.normal; }
 
 // When "Support language" is set to anything but English, we treat it as the student's
@@ -1303,7 +1354,7 @@ const TIER_INFO = {
 // The three block-type cards on the setup card (they drive the hidden Block type dropdown).
 const TIER_CARD = {
   basic: { price: 12, feat: "Corrections, a more natural way to say it, and why" },
-  tier2: { price: 15, feat: "+ Other ways to say it, vocabulary, collocations, translation for beginners" },
+  tier2: { price: 15, feat: "+ Other ways to say it, vocabulary, collocations, translation for beginners, 🎧 noise cancel" },
   premium: { price: 17, feat: "+ After-class feedback & PDF, mistake tracker, target phrases, follow-up questions" },
 };
 const tierCardsEl = document.getElementById("tierCards");
@@ -1630,6 +1681,15 @@ function showGuard(talking) {
     guardWarned = true;
     toast("🎧 Your mic seems to hear the lesson too, so some of your student's words may be skipped. Please use a headset.");
   }
+  if (talking && !guardTurnTimer) {
+    guardTurnTimer = setTimeout(function () {
+      guardTurnTimer = null;
+      if (!guardOnSince || !running || paused) return;
+      teacherSpokeAt = Date.now();
+      // The teacher is answering, so the student's turn is over: send it now.
+      if (finalTranscript.trim() && !lastInterim.trim() && !heldAt) { clearEndpointTimer(); flushLeftover(); }
+    }, TEACHER_TURN_MS);
+  } else if (!talking && guardTurnTimer) { clearTimeout(guardTurnTimer); guardTurnTimer = null; }
   guardPill.classList.toggle("on", !!talking);
   guardPill.textContent = talking ? "🛡 You're talking · skipped" : "🛡 Skipping your voice";
 }
@@ -1901,6 +1961,7 @@ async function connectSocket(options) {
         if (Date.now() - heldAt > heldMs) finalTranscript = "";
         clearHold();
       }
+      if (!finalTranscript.trim()) turnStartAt = Date.now();
       finalTranscript += newFinal;
 
       // Normally we wait until the student actually stops talking (the endpoint below)
@@ -1913,6 +1974,8 @@ async function connectSocket(options) {
         const done = split.sentences.join(" ");
         if (split.sentences.length && wordCount(done) >= currentPace().longTalk) {
           analyzeSentence(done);
+          lastSpoken = null; // long talker: keep these as separate cards on purpose
+          turnStartAt = Date.now();
           finalTranscript = split.remainder.replace(/^\s+/, "");
         }
       }
@@ -1930,13 +1993,10 @@ async function connectSocket(options) {
       // If what we have looks like the middle of a sentence ("...and then we", no full
       // stop), the student is probably just thinking: wait a bit longer before sending.
       // Any new speech cancels the wait and the thought keeps growing.
-      const extra = currentPace().extraHold + (looksUnfinished(finalTranscript) ? UNFINISHED_HOLD_MS : 0);
-      if (extra > 0) {
-        clearEndpointTimer();
-        endpointTimer = setTimeout(function () { endpointTimer = null; flushLeftover(); }, extra);
-      } else {
-        flushLeftover();
-      }
+      const pace = currentPace();
+      const extra = pace.settle + pace.extraHold + (looksUnfinished(finalTranscript) ? UNFINISHED_HOLD_MS : 0);
+      clearEndpointTimer();
+      endpointTimer = setTimeout(function () { endpointTimer = null; flushLeftover(); }, extra);
     }
   };
 
@@ -2014,6 +2074,13 @@ function flushLeftover() {
     renderLiveTranscript("", "");
     return;
   }
+  const join = joinTarget(leftover);
+  if (join) {
+    analyzeSentence(join.text + " " + leftover, { replace: join.card });
+    finalTranscript = "";
+    renderLiveTranscript("", "");
+    return;
+  }
   if (isTranslating() || wordCount(leftover) >= minWords) {
     analyzeSentence(leftover);
     finalTranscript = "";
@@ -2032,6 +2099,19 @@ function flushLeftover() {
       renderLiveTranscript("", "");
     }
   }, heldMs);
+}
+
+// The student paused, a card went out, then they carried on with the same thought: if it
+// came back quickly and the teacher didn't speak in between, it belongs to that card.
+function joinTarget(leftover) {
+  const j = lastSpoken;
+  if (!j || !j.card.isConnected || !turnStartAt) return null;
+  const pace = currentPace();
+  if (turnStartAt - j.sentAt > pace.joinGap) return null;
+  if (teacherSpokeAt > j.sentAt) return null;
+  if (j.translating !== isTranslating()) return null;
+  if (wordCount(j.text) + wordCount(leftover) > pace.longTalk * 1.5) return null;
+  return j;
 }
 
 function clearHold() {
@@ -2294,13 +2374,21 @@ function analyzeSentence(text, opts) {
   const choice = account && account.admin && engineEl.value !== "auto" ? engineEl.value : tierEngine;
   const engines = choice === "compare" ? ["basic", "haiku"] : [choice];
 
-  const card = document.createElement("div");
-  card.className = "correction-card";
-
-  if (results.children.length === 1 && results.firstElementChild.classList.contains("empty")) {
-    results.innerHTML = "";
+  const replacing = opts && opts.replace && opts.replace.isConnected ? opts.replace : null;
+  let card;
+  if (replacing) {
+    // Same turn, more words: redo the same card with the whole thought.
+    card = replacing;
+    forgetFeedback(card);
+  } else {
+    card = document.createElement("div");
+    card.className = "correction-card";
+    if (results.children.length === 1 && results.firstElementChild.classList.contains("empty")) {
+      results.innerHTML = "";
+    }
+    results.prepend(card);
   }
-  results.prepend(card);
+  if (!typed) lastSpoken = { card: card, text: text, sentAt: Date.now(), translating: translating };
 
   const settings = {
     text: text,
@@ -2320,8 +2408,8 @@ function analyzeSentence(text, opts) {
 
   // What the voice engine heard, on top of every card, so you can spot a misheard word.
   card.innerHTML = typed
-    ? `<div class="said typed" title="What was typed in Write your thoughts">✍️ You wrote: ${escapeHtml(text)}</div>`
-    : `<div class="said" title="What the voice engine heard the student say">🎧 Heard: ${escapeHtml(text)}</div>`;
+    ? `<div class="said typed" title="What was typed in Write your thoughts"><span class="said-label">✍️ You wrote</span>${escapeHtml(text)}</div>`
+    : `<div class="said" title="What the voice engine heard the student say"><span class="said-label">🎧 Student said${replacing ? ' <span class="joined" title="The student kept going after a pause, so it was added to this card">· continued</span>' : ""}</span>${escapeHtml(text)}</div>`;
 
   if (engines.length === 1) {
     const body = document.createElement("div");
@@ -2398,7 +2486,7 @@ async function runAnalysis(card, tag, settings, engine, record) {
       }
     }
     renderCorrection(card, generated);
-    if (record) recordForFeedback(settings.text, generated);
+    if (record && card.isConnected) recordForFeedback(settings.text, generated, card.closest(".correction-card"));
     if (tag) tag.textContent = ENGINE_NAMES[engine] + " · " + ((performance.now() - started) / 1000).toFixed(1) + "s";
   } catch (error) {
     console.error("Analysis error:", error);
@@ -2436,18 +2524,92 @@ function renderCorrection(card, generated) {
   const colList = collocations ? collocations.split("|").map(function (c) { return c.trim(); }).filter(Boolean) : [];
   const followList = followup ? followup.split("|").map(function (c) { return c.trim(); }).filter(Boolean) : [];
 
+  // Always shown: what to say. Everything else sits behind small tabs so the card
+  // stays short; tabs the trainer opens stay open on the next cards too.
+  const groups = [
+    { id: "ways", icon: "🔁", label: "Other ways", n: altList.length, html: altList.length ? correctionBox("alt", "Other ways to say it", altList.join(" • "), altList.join("\n")) : "" },
+    { id: "words", icon: "📚", label: "Words", n: (vocab ? 1 : 0) + colList.length,
+      html: (vocab ? correctionBox("vocab", "Vocabulary", vocab) : "") + (colList.length ? correctionBox("colloc", "Collocations", colList.join(" • "), colList.join("\n")) : "") },
+    { id: "next", icon: "💭", label: "Ask next", n: followList.length,
+      html: (targetTip ? correctionBox("target", "Lesson phrase", targetTip) : "") + (followList.length ? correctionBox("followup", "Ask next", followList.join(" • "), followList.join("\n")) : "") },
+  ].filter(function (g) { return g.html; });
+
+  if (card.dataset.open === undefined) card.dataset.open = openGroupsPref().join(",");
+  const open = card.dataset.open ? card.dataset.open.split(",") : [];
+  card.classList.add("cc-body");
+
   card.innerHTML =
     (mistakes.length ? `<div class="mistake-tags" title="Mistake types (Premium)">📊 ${escapeHtml(mistakes.join(" · "))}</div>` : "") +
     (corrected ? correctionBox(translating ? "translation" : "corrected", translating ? "Translation" : "Corrected", corrected) : "") +
     (natural ? correctionBox("natural", translating ? "Suggested English phrase" : "More natural", natural) : "") +
-    (why ? correctionBox("why", "Why", why) : "") +
-    (altList.length ? correctionBox("alt", "Other ways to say it", altList.join(" • "), altList.join("\n")) : "") +
-    (vocab ? correctionBox("vocab", "Vocabulary", vocab) : "") +
-    (colList.length ? correctionBox("colloc", "Collocations", colList.join(" • "), colList.join("\n")) : "") +
+    (why ? correctionBox("why", "Quick explanation", why) : "") +
     (praise ? correctionBox("praise", "Well said", praise) : "") +
-    (targetTip ? correctionBox("target", "Lesson phrase", targetTip) : "") +
-    (followList.length ? correctionBox("followup", "Ask next", followList.join(" • "), followList.join("\n")) : "");
+    (groups.length ? `<div class="grp-bar" role="group" aria-label="More for this sentence">` +
+      groups.map(function (g) {
+        const on = open.indexOf(g.id) !== -1;
+        return `<button type="button" class="grp-chip" data-grp="${g.id}" aria-expanded="${on}"><span aria-hidden="true">${g.icon}</span>${escapeHtml(g.label)}${g.n > 1 ? `<span class="n">${g.n}</span>` : ""}</button>`;
+      }).join("") +
+      (groups.length > 1 ? `<button type="button" class="grp-chip all" data-grp="*">${groups.every(function (g) { return open.indexOf(g.id) !== -1; }) ? "Hide all" : "Show all"}</button>` : "") +
+      `</div>` : "") +
+    groups.map(function (g) { return `<div class="grp-panel" data-panel="${g.id}"${open.indexOf(g.id) !== -1 ? "" : " hidden"}>${g.html}</div>`; }).join("");
 }
+
+// Which tabs open by themselves on new cards (the ones the trainer last left open).
+const GROUPS_KEY = "tp_open_groups";
+function openGroupsPref() {
+  try { const v = localStorage.getItem(GROUPS_KEY); return v ? v.split(",").filter(Boolean) : []; } catch { return []; }
+}
+function saveOpenGroupsPref(list) {
+  try { localStorage.setItem(GROUPS_KEY, list.join(",")); } catch {}
+}
+
+results.addEventListener("click", function (event) {
+  const chip = event.target.closest(".grp-chip");
+  if (!chip) return;
+  const body = chip.closest(".cc-body");
+  if (!body) return;
+  const ids = Array.from(body.querySelectorAll(".grp-chip[data-grp]:not(.all)")).map(function (c) { return c.dataset.grp; });
+  let open = body.dataset.open ? body.dataset.open.split(",").filter(Boolean) : [];
+  const id = chip.dataset.grp;
+  if (id === "*") {
+    open = ids.every(function (g) { return open.indexOf(g) !== -1; }) ? [] : ids.slice();
+  } else if (open.indexOf(id) !== -1) {
+    open = open.filter(function (g) { return g !== id; });
+  } else {
+    open.push(id);
+  }
+  body.dataset.open = open.join(",");
+  body.querySelectorAll(".grp-chip[data-grp]:not(.all)").forEach(function (c) { c.setAttribute("aria-expanded", open.indexOf(c.dataset.grp) !== -1); });
+  body.querySelectorAll(".grp-panel").forEach(function (p) { p.hidden = open.indexOf(p.dataset.panel) === -1; });
+  const all = body.querySelector(".grp-chip.all");
+  if (all) all.textContent = ids.every(function (g) { return open.indexOf(g) !== -1; }) ? "Hide all" : "Show all";
+  // Remember for the next cards (keep choices for tabs this card didn't have).
+  const pref = openGroupsPref().filter(function (g) { return ids.indexOf(g) === -1; }).concat(open);
+  saveOpenGroupsPref(pref);
+});
+
+// "Show on cards": trainers untick the parts they don't want. Applies to every card at once
+// (old ones too) and is remembered on this computer.
+const PARTS_KEY = "tp_card_hidden";
+const partBoxes = Array.from(document.querySelectorAll("#cardParts input"));
+function applyCardParts() {
+  partBoxes.forEach(function (b) { results.classList.toggle("hide-" + b.value, !b.checked); });
+}
+(function loadCardParts() {
+  let hidden = [];
+  try { hidden = (localStorage.getItem(PARTS_KEY) || "").split(",").filter(Boolean); } catch {}
+  partBoxes.forEach(function (b) { b.checked = hidden.indexOf(b.value) === -1; });
+  if (!partBoxes.some(function (b) { return b.checked; })) partBoxes.forEach(function (b) { b.checked = true; });
+  applyCardParts();
+})();
+partBoxes.forEach(function (box) {
+  box.addEventListener("change", function () {
+    if (!partBoxes.some(function (b) { return b.checked; })) box.checked = true; // keep at least one
+    applyCardParts();
+    const hidden = partBoxes.filter(function (b) { return !b.checked; }).map(function (b) { return b.value; });
+    try { localStorage.setItem(PARTS_KEY, hidden.join(",")); } catch {}
+  });
+});
 
 // One colored box per part of a correction, each with its own Copy button.
 const BOX_ICONS = { corrected: "✅", translation: "🌐", natural: "💬", why: "💡", alt: "🔁", vocab: "📚", colloc: "🔗", praise: "⭐", target: "🎯", followup: "💭" };
@@ -2620,17 +2782,30 @@ function resetClassLog() {
   renderPremiumBar();
 }
 
-function recordForFeedback(heard, generated) {
+function recordForFeedback(heard, generated, card) {
+  if (card) forgetFeedback(card);
   const mistakes = mistakeList(extractLine(generated, "MISTAKES:"));
   for (const m of mistakes) mistakeCounts[m] = (mistakeCounts[m] || 0) + 1;
-  classLog.push({
+  const entry = {
     heard: heard,
     corrected: extractLine(generated, "CORRECTED:"),
     natural: extractLine(generated, "NATURAL:"),
     why: extractLine(generated, "WHY:"),
     mistakes: mistakes.join(", "),
     praise: extractLine(generated, "PRAISE:"),
-  });
+  };
+  classLog.push(entry);
+  if (card) card._log = { entry: entry, mistakes: mistakes };
+  renderPremiumBar();
+}
+// A card that's being redone takes its old entry (and mistake counts) out of the class log.
+function forgetFeedback(card) {
+  const old = card && card._log;
+  if (!old) return;
+  card._log = null;
+  const i = classLog.indexOf(old.entry);
+  if (i !== -1) classLog.splice(i, 1);
+  for (const m of old.mistakes) { if (mistakeCounts[m] > 1) mistakeCounts[m]--; else delete mistakeCounts[m]; }
   renderPremiumBar();
 }
 
